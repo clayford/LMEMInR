@@ -1,0 +1,145 @@
+---
+title: "Linear Mixed-Effect Modeling in R"
+author: "Clay Ford"
+date: "Fall 2015"
+output: beamer_presentation
+---
+
+## Workshop Goals
+
+To teach you...
+
+- what linear mixed-effect models are
+- when to use linear mixed-effect models
+- how to implement in R
+- how to interpret the output
+
+## What is a Linear Mixed-Effect Model?
+
+A linear model with both *fixed* and *random* effects. Hence, the phrase "*Mixed-Effect*".
+
+**Fixed effects** are population parameters we seek to estimate. These are regression coefficients for *repeatable* variables (eg: Gender, Age, Treatment, Race, etc.)
+
+**Random effects** are random values associated with levels of a random factor. We want to understand their variability, not estimate them. These are for *non-repeatable* variables (eg: subjects, teachers, schools, plots of land, etc.)
+
+If we repeat the analysis on new data, the *repeatable* variables would be collected or used again, the *non-repeatable* variables would not.
+
+## Example
+
+We have a new treatment for a disease. We carry out an experiment and randomly prescribe the treatment or placebo to patients and collect data every two weeks for two months to gauge efficacy. 
+
+- The Fixed Effect is Treatment. If we were to replicate this study, we would use this variable again.  
+
+- The Random Effect is Patient. If we were to replicate this study, we would not use the same patients again.  
+
+
+## Data for Linear Mixed-Effect Models
+
+LMM (Linear Mixed Models) are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by *random factors* and the response (or dependent variable) is continuous. 
+
+In our previous example, we had longitudinal data grouped by patient (a random factor). The effect of the patient is a random effect. The effect of the treatment is a fixed effect.
+
+In R, LMM data need to be in *long* format. That is, we have one record per subject per each measure of the dependent variable.  
+
+
+## Data in Long Format
+
+```{r, echo=FALSE, cache=TRUE, message=FALSE}
+library(lme4)
+head(sleepstudy)
+```
+
+The dependent variable is `Reaction`. Notice we have one record per subject per each measure of `Reaction`.
+
+## Specification of a Linear Model
+
+Let's review the specification for a basic linear model:
+
+$$\boldsymbol{Y} = \boldsymbol{X\beta} + \epsilon  $$
+$$\epsilon \sim N(0, \sigma)$$ 
+
+This says our dependent variable ($\boldsymbol{Y}$) is equal to our independent variables ($\boldsymbol{X}$) multiplied by coefficients ($\boldsymbol{\beta}$) and added up, plus some random error ($\epsilon$) that comes from a Normal distribution with mean 0 and standard deviation $\sigma$.
+
+A key assumption is the independence of the random errors.
+
+## Simple data for a linear model
+```{r, echo=FALSE}
+options(digits = 4)
+x <- seq(0,3,length.out = 100)
+set.seed(1)
+y <- 0.5 + 0.8*x + rnorm(100,sd = 0.4)
+m1 <- lm(y ~ x)
+dat <- data.frame(y, x, fit = fitted(m1))
+library(ggplot2)
+ggplot(dat, aes(x,y)) + geom_point()
+
+```
+
+
+## Fitting a linear model in R
+
+```{r}
+m1 <- lm(y ~ x)
+coef(m1) # estimate coefficients
+summary(m1)$sigma # estimate of error standard deviation
+```
+
+
+## Visualizing a linear model
+
+```{r, echo=FALSE, cache=TRUE, message=FALSE}
+library(gridExtra)
+p1 <- ggplot(dat, aes(x,y)) + geom_point()
+
+p2 <- ggplot(dat, aes(x,y)) + geom_point() + geom_smooth(method="lm",se=F) + 
+  geom_segment(aes(x = x, y = y, xend = x, yend = fit)) +
+  geom_text(data=NULL, aes(x=0,y=3,label="Y == 0.55 + 0.79*X + N(0,0.36)"), 
+            parse=TRUE, hjust=0)
+grid.arrange(p1, p2, nrow=1) # can also use ncol
+
+```
+
+## Specification of a Linear Mixed-Effect Model
+
+The linear mixed-effect model is more complex:
+
+$$\boldsymbol{Y_i} = \boldsymbol{X_i\beta} + \boldsymbol{Z_ib_i} + \epsilon_i $$
+$$\boldsymbol{b_i} \sim N(\boldsymbol{0}, \boldsymbol{D})$$ 
+$$\epsilon_i \sim N(\boldsymbol{0}, \boldsymbol{R_i})$$ 
+
+Notice the `i` subscript. Linear mixed-effect models are fit to groups of data, say repeated measures made on subjects. The $\boldsymbol{X_i\beta}$ are the fixed effects. The $\boldsymbol{Z_ib_i}$ are the random effects. The $\epsilon_i$ are the random errors.
+
+In contrast to a standard linear models, random errors can be correlated.
+
+## Random effects and errors
+
+In a standard linear model we just have to estimate one random error parameter: $\sigma$. 
+
+In a linear mixed-effect model we have two *matrices* of error structures:   
+- one for the random effects: $\boldsymbol{D}$   
+- one for the random errors: ($\boldsymbol{R_i}$)
+
+In addition these matrices can take on different *structures*. 
+
+$$\boldsymbol{b_i} \sim N(\boldsymbol{0}, \boldsymbol{D})$$ 
+$$\epsilon_i \sim N(\boldsymbol{0}, \boldsymbol{R_i})$$ 
+
+## References
+
+Linear Mixed Models.
+
+Linear Mixed-Effect Models Using R
+
+Mixed-Effects Models in R
+
+## StatLab
+
+Thanks for coming today!
+
+For help and advice with your data analysis, contact the StatLab to set up an appointment: statlab@virginia.edu
+
+Sign up for more workshops or see past workshops:
+http://data.library.virginia.edu/statlab/
+
+Register for the Research Data Services newsletter to stay up-to-date on StatLab events and resources: http://data.library.virginia.edu/newsletters/
+
