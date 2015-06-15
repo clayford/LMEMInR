@@ -117,9 +117,46 @@ In a standard linear model we just have to estimate one random error parameter: 
 
 In a linear mixed-effect model we have two *matrices* of error structures:   
 - one for the random effects: $\boldsymbol{D}$   
-- one for the random errors: ($\boldsymbol{R_i}$)
+- one for the random errors: $\boldsymbol{R_i}$
 
-In addition these matrices can take on different *structures*. 
+These matrices can take on different *structures*. 
+
+## What do we mean by "structures"?
+
+The $\boldsymbol{D}$ and $\boldsymbol{R_i}$ matrices are known as *variance-covariance* matrices. 
+
+The variance is on the diagonal. The covariance is on the off-diagonal. For example, a $\boldsymbol{D}$  matrix for two random effects might be structured as follows:
+
+$$\begin{pmatrix}
+\sigma_{b1}^{2}  &  \sigma_{b1,b2}\\ 
+ \sigma_{b1,b2} & \sigma_{b2}^{2}
+\end{pmatrix}$$
+
+In this matrix there are three parameters to estimate: $\sigma_{b1}^{2}$, $\sigma_{b2}^{2}$, and $\sigma_{b1,b2}$. This structure assumes the two random effects have covariance, ie, they vary together.
+
+## Example of another $\boldsymbol{D}$ matrix structure
+
+We could also constrain the covariance to be 0 in a $\boldsymbol{D}$  matrix, like so:
+
+$$\begin{pmatrix}
+\sigma_{b1}^{2}  &  0\\ 
+0 & \sigma_{b2}^{2}
+\end{pmatrix}$$
+
+In this matrix there are only two parameters to estimate, $\sigma_{b1}^{2}$ and $\sigma_{b2}^{2}$, since we assume covariance is 0.
+
+## Example of a $\boldsymbol{R_i}$ matrix structure
+
+The simplest covariance matrix for the random errors is the diagonal structure:
+
+$$\begin{pmatrix}
+\sigma^{2}  & 0 & \cdots  & 0\\ 
+0 & \sigma^{2} & \cdots & 0\\ 
+\vdots  & \vdots & \ddots  &\vdots \\ 
+0 & 0 & \cdots & \sigma^{2}
+\end{pmatrix}$$
+
+It's important to know the default structure that your software assumes.
 
 $$\boldsymbol{b_i} \sim N(\boldsymbol{0}, \boldsymbol{D})$$ 
 $$\epsilon_i \sim N(\boldsymbol{0}, \boldsymbol{R_i})$$ 
