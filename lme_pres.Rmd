@@ -195,7 +195,7 @@ y <- 0.5 + b + 1.5*x + eps
 dat <- data.frame(g, x, y, b, eps)
 p1 <- ggplot(dat, aes(x,y)) + geom_point() + labs(title="with no grouping indicated")
 p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="with grouping indicated")
-grid.arrange(p1, p2, nrow=1) # can also use ncol
+grid.arrange(p1, p2, nrow=1)
 ```
 
 
@@ -213,20 +213,103 @@ VarCorr(lme1) # D and R estimates
 ## Visualizing a linear mixed-effect model
 
 ```{r, echo=FALSE, cache=TRUE}
-p1 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="with grouping indicated")
 lfits <- coef(lme1)$g
 names(lfits)[1] <- "int"
 lfits$g <- factor(1:10)
-p2 <- ggplot(dat, aes(x,y,color=g)) + geom_point() + 
+ggplot(dat, aes(x,y,color=g)) + geom_point() + 
   geom_abline(data=lfits, aes(intercept=int, slope=x, color=g)) +
   geom_abline(intercept=fixef(lme1)[1], slope=fixef(lme1)[2],size=2, alpha=0.4) +
   labs(title="with grouping indicated and fitted linear mixed-effect model") +
   annotate("text", x=0,y=8,label="Y == 0.61 + 0.49*X + N(0,0.83)[g] + N(0,0.19)", 
-            parse=TRUE, hjust=0, size = 3)
+            parse=TRUE, hjust=0, size = 5)
+```
+
+## Random slopes
+
+```{r,echo=FALSE, cache=TRUE}
+# Random slopes
+n1 <- 10 # 10 subjects
+n2 <- 10 # 10 obs per subject
+g <- gl(n = n1, k = n2) # 10 levels repeated 10 times each
+set.seed(1)
+x <- as.vector(replicate(n1,round(sort(runif(n2, 0, 5)),3)))
+b1 <- rnorm(n1, 0, 0.8) # random slope
+eps <- rnorm(length(g),0,0.2)
+b <- b1[g]
+y <- 0.5 + (1.5 + b)*x + eps
+dat <- data.frame(g, x, y, b, eps)
+p1 <- ggplot(dat, aes(x,y)) + geom_point() + labs(title="with no grouping indicated")
+p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="with grouping indicated")
 grid.arrange(p1, p2, nrow=1) 
 ```
 
-## Random intercepts and random slopes
+## Fitting a LMM for random slopes
+
+```{r, message=FALSE}
+# fit random effect for slope but not intercept
+lme2 <- lmer(y ~ x + (0 + x | g), data = dat)
+fixef(lme2) # fixed effect estimates
+VarCorr(lme2) # D and R estimates
+```
+
+## Visualizing the fit
+
+```{r, echo=FALSE, cache=TRUE}
+lfits <- coef(lme2)$g
+names(lfits)[1] <- "int"
+lfits$g <- factor(1:10)
+ggplot(dat, aes(x,y,color=g)) + geom_point() + 
+  geom_abline(data=lfits, aes(intercept=int, slope=x, color=g)) +
+  geom_abline(intercept=fixef(lme2)[1], slope=fixef(lme2)[2],size=2, alpha=0.4) +
+  labs(title="with grouping indicated and fitted linear mixed-effect model") +
+  annotate("text", x=0,y=11,label="Y == 1.04 + (0.99 + N(0,0.74)[g])*X  + N(0,0.19)", 
+            parse=TRUE, hjust=0, size = 5)
+```
+
+
+## Random intercepts and slopes
+
+```{r,echo=FALSE, cache=TRUE}
+# Random intercepts and random slopes
+n1 <- 10 # 10 subjects
+n2 <- 10 # 10 obs per subject
+g <- gl(n = n1, k = n2) # 10 levels repeated 10 times each
+set.seed(1)
+x <- as.vector(replicate(n1,round(sort(runif(n2, 0, 5)),3)))
+b0 <- rnorm(n1, 0, 1) # random intercept
+b1 <- rnorm(n1, 0, 0.8) # random slope
+eps <- rnorm(length(g),0,0.2)
+b0 <- b0[g]
+b1 <- b1[g]
+y <- (0.5 + b0) + (1.5 + b1)*x + eps
+dat <- data.frame(g, x, y, eps)
+p1 <- ggplot(dat, aes(x,y)) + geom_point() + labs(title="with no grouping indicated")
+p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="with grouping indicated")
+grid.arrange(p1, p2, nrow=1)
+```
+
+## Fitting a LMM for random intercepts and slopes
+
+```{r, message=FALSE}
+# fit random effects for intercepts and slopes 
+lme3 <- lmer(y ~ x + (x | g), data = dat)
+fixef(lme3) # fixed effect estimates
+VarCorr(lme3) # D and R estimates
+```
+
+## Visualizing the fit
+
+```{r, echo=FALSE, cache=TRUE}
+lfits <- coef(lme3)$g
+names(lfits)[1] <- "int"
+lfits$g <- factor(1:10)
+ggplot(dat, aes(x,y,color=g)) + geom_point() + 
+  geom_abline(data=lfits, aes(intercept=int, slope=x, color=g)) +
+  geom_abline(intercept=fixef(lme3)[1], slope=fixef(lme3)[2],size=2, alpha=0.4) +
+  labs(title="with grouping indicated and fitted linear mixed-effect model") +
+  annotate("text", x=0,y=13,label="Y == (0.61 + N(0,1.07)[g]) + (1.87 + N(0,1.02)[g])*X  + N(0,0.19)", 
+            parse=TRUE, hjust=0, size = 5)
+```
 
 
 ## Packages for fitting LMM
@@ -247,7 +330,31 @@ The syntax is a little easier to learn and it seems to be the go-to package in t
 
 By the way, the "4" in `lme4` refers to the technical fact that `lme4` was programmed using the S4 system in R.
 
+## Selected lme4 Commands
+
+These are some of the most common lme4 functions:
+
+- `lmer()` - Fit a linear mixed-effects model (LMM) to data
+- `summary()` - View summary of fitted LMM 
+- `fixef()` - View estimated fixed effect coefficients 
+- `ranef()` - View predicted random effects
+- `coef()` - View coefficients for LMM for *each group* 
+- `confint()` - View confidence intervals of parameter estimates
+- `VarCorr()` - View estimated variance parameters
+- `anova()` - Compare fitted LMM and return model comparison statistics
+
 Let's go to R!
+
+## Why no p-values in the LMM summary
+
+You can read what the author of `lme4` has to say:  
+https://stat.ethz.ch/pipermail/r-help/2006-May/094765.html
+
+
+
+## REML vs. ML
+
+## Inference and Model Selection
 
 ## References
 
@@ -258,6 +365,10 @@ Linear Mixed-Effect Models Using R
 Mixed-Effects Models in R
 
 Extending the Linear Model with R. Faraway
+
+DRAFT r-sig-mixed-models FAQ:   
+http://glmm.wikidot.com/faq
+
 
 ## StatLab
 
