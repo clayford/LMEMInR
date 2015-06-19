@@ -11,6 +11,9 @@ library(ggplot2)
 library(effects)
 library(faraway)
 
+
+# Fitting Models using lmer() ---------------------------------------------
+
 data("ratdrink")
 
 # The data consist of 5 weekly measurements of body weight for 27 rats. The
@@ -59,13 +62,6 @@ fixef(lme1)[1] + ranef(lme1)$subject == coef(lme1)$subject[,1]
 # estimates of variance parameters
 VarCorr(lme1)
 
-# Instead of p-values, perhaps look at confidence intervals;
-# confidence intervals for parameter estimates
-confint(lme1)
-confint(lme1,method="boot",nsim = 200,.progress="txt") # nsim=500 is default
-confint(lme1,method="boot",nsim = 200,.progress="txt", PBargs = list(style=3)) 
-
-densityplot(profile(lme1))
 
 # fit random intercept and random slope
 lme2 <- lmer(wt ~ treat + weeks + (weeks | subject), data=ratdrink)
@@ -82,9 +78,6 @@ ranef(lme2)$subject # predicted random effects
 fixef(lme2)[1] + ranef(lme2)$subject[,1] == coef(lme2)$subject[,1]
 fixef(lme2)[4] + ranef(lme2)$subject[,2] == coef(lme2)$subject[,4]
 
-# compare to model with random intercept only
-anova(lme1, lme2)
-# random slope effect appears to be justified
 
 # fit model with interaction and random slopes and intercept
 lme3 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject), 
@@ -95,13 +88,11 @@ fixef(lme3)
 ranef(lme3)
 
 VarCorr(lme3)
-confint(lme3)
 
-# compare to model without interaction
-anova(lme2, lme3)
-# model with interaction appears to fit better
 
-# plot fitted model
+# Effect Plots ------------------------------------------------------------
+
+# plot fitted model for lme3
 
 # a rather complicated way using ggplot2
 fe <- fixef(lme3)
@@ -120,5 +111,69 @@ plot(allEffects(lme3), multiline=TRUE)
 plot(allEffects(lme3), multiline=TRUE, ci.style = "bands")
 # see ?allEffects and ?plot.eff for more options and examples
 
+
+# back to presentation
+
+
+# Confidence Intervals ----------------------------------------------------
+
+# profile method
+confint(lme3)
+# oldNames = FALSE changes the labeling
+confint(lme3, oldNames = FALSE)
+
+# bootstrap method with a progress bar (nsim = 500)
+confint(lme3, method = "boot", .progress="txt")
+# add a percent completion indicator
+confint(lme3, method = "boot", nsim = 200,
+        .progress="txt", PBargs=list(style=3))
+
+
+
+# Diagnostics -------------------------------------------------------------
+
+# Check assumptions of constant variance and normality
+
+# check constant variance assumption
+# residual vs. fitted values
+plot(lme3)
+# same as this:
+plot(resid(lme3) ~ fitted(lme3))
+abline(h=0)
+
+
+# plots of residuals by weeks
+plot(lme3, form = resid(.) ~ weeks)
+# by weeks and treatment
+plot(lme3, form = resid(.) ~ weeks | treat)
+
+# residuals by subjects
+plot(lme3, subject ~ resid(.))
+
+# residuals by treat
+plot(lme3, treat ~ resid(.))
+
+# check normality of residuals
+qqnorm(resid(lme3))
+
+# check constant variance of random effects
+pairs(ranef(lme3)[[1]])
+
+# check normality of random effects
+qqnorm(ranef(lme3)[[1]]$"(Intercept)") # intercept
+qqnorm(ranef(lme3)$subject$weeks) # slope
+
+
+
+
+# Model Comparison --------------------------------------------------------
+
+
+# compare models 
+# comparisons are sequential (1 vs. 2, 2 vs. 3)
+anova(lme1, lme2, lme3)
+# lme3 appears to be the "best" model
+
+# notice models are re-fit with ML
 
 

@@ -320,7 +320,7 @@ The two most commonly used R packages for fitting linear mixed-effect models are
 
 - **`lme4`**: newer package, does not come with R; can fit linear, generalized linear, and nonlinear mixed-effect models; can also fit models with *crossed random effects*; does not currently allow fitting various covariance structures for residual errors.
 
-`lme4` also use different computations than `nlme`. The math is far beyond the scope of this workshop but suffice to say it makes lme4 better for larger data.
+`lme4` also uses different computations than `nlme`. The math is far beyond the scope of this workshop but suffice to say it makes lme4 better for larger data.
 
 ## lme4
 
@@ -339,22 +339,93 @@ These are some of the most common lme4 functions:
 - `fixef()` - View estimated fixed effect coefficients 
 - `ranef()` - View predicted random effects
 - `coef()` - View coefficients for LMM for *each group* 
-- `confint()` - View confidence intervals of parameter estimates
 - `VarCorr()` - View estimated variance parameters
-- `anova()` - Compare fitted LMM and return model comparison statistics
 
 Let's go to R!
 
-## Why no p-values in the LMM summary
+## Why no p-values in the LMM summary?
+
+Recall that p-values in the coefficient summary of fitted model are the probability of getting a test statistic as large (or larger) if the coefficient was indeed 0.
+
+Also recall that p-values are determined using null reference distributions. Under the null hypothesis, the test statistic has a known distribution.
+
+In LMM, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` author elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
 
 You can read what the author of `lme4` has to say:  
 https://stat.ethz.ch/pipermail/r-help/2006-May/094765.html
 
+## How do I know if a coefficient is "significant"?
 
+Easiest way is to compute 95% confidence intervals using the `confint()` function. If the interval contains 0, it is not significant. Further, confidence intervals give an indication of coefficient size and variability.
+
+Say your fitted model object is `lme1`. Two ways to compute confidence intervals are as follows:
+
+`confint(lme1)`
+
+> computes a likelihood profile and finds the appropriate cutoffs based on the likelihood ratio test
+
+`confint(lme1, method="boot")`
+
+> parametric bootstrapping (B = 500) with confidence intervals computed from the bootstrap distribution
+
+## Diagnostic plots
+
+Once we fit a LMM, we should assess our assumptions:
+
+1. within-group errors (ie, residuals) are normally distributed, centered at 0 and have constant variance
+
+2. random effects are normally distributed, centered at 0 and have constant variance
+
+`lme4` provides a `plot()` method to help graphically check the variance assumptions of residuals. Say you have a fitted model object named `lme1`. The basic syntax is as follows:
+
+`plot(lme1, form=)`
+
+Where the `form=` argument is an optional formula specifying the desired type of plot.
+
+## Diagnostic plots continued
+
+To check constant variance of random effects:
+
+`pairs(ranef(lme1)[[1]])`
+
+To assess normality of residuals:
+
+`qqnorm(resid(lme1))`  
+
+To asses normality of random effects, say a random intercept:
+
+`qqnorm(ranef(lme1)[[1]]$"(Intercept)")`
 
 ## REML vs. ML
 
-## Inference and Model Selection
+If you look closely at the summary output for a model fit with lme4, you'll see the message: `Linear mixed model fit by REML`.
+
+REML stands for Restricted Maximum-Likelihood Estimation. It provides unbiased estimates for the variance parameters. 
+
+By setting `REML=FALSE` in the `lmer()` function, we can estimate parameters using ML, Maximum Likelihood. But the variance estimates will be biased downwards.
+
+The choice of ML vs REML affects model comparisons.
+
+
+## Model Comparisons
+
+We often compare models to see if a smaller model fits as well as a larger model.
+
+We can compare models either by hypothesis testing or by selection criteria.
+
+When it comes to hypothesis testing, the choice of ML vs REML estimation is important:
+
+> To compare two models fit by REML, each must have the same fixed effects. That is, we can only compare models with different random effects if both were fit with REML.
+
+> To compare two models fit by ML, one must be nested within the other. 
+
+The function to compare models is `anova()`. It's default behavior is to refit the models with LM before comparing. 
+
+## Testing Hypotheses about random effects
+
+Random effect parameters are measures of variances. Variance is greater than or equal to 0. 
+
+When testing whether or not to include a random effect in a model, we're testing that its variance is 0. In that case our hypothesis test involves a values lying on the boundary of the parameter space.
 
 ## References
 
