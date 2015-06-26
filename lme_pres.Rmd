@@ -30,15 +30,15 @@ We have a new treatment for a disease. We carry out an experiment and randomly p
 
 - The Fixed Effect is Treatment. If we were to replicate this study, we would use this variable again.  
 
-- The Random Effect is Patient. If we were to replicate this study, we would not use the same patients again. The response data is grouped by patient.  
+- The Random Effect is Patient. If we were to replicate this study, we would not use the same patients again. In Most importantly, *the response data is grouped by patient*.  
 
 ## Another example
 
-We have a new computer-based math curriculum. We carry out an experiment and randomly prescribe either the new curriculum or current curriculum to teachers within a school district and measure change in student pre- and post-test scores. 
+We have a new computer-based math curriculum. We carry out an experiment and randomly prescribe either the new curriculum or current curriculum to teachers in various schools and measure change in student pre- and post-test scores. 
 
 - The Fixed Effect is Curriculum. If we were to replicate this study, we would use this variable again.  
 
-- The Random Effect is Teacher. If we were to replicate this study, we would not use the same teachers again. The response data is grouped by teacher.  
+- The Random Effects are Teachers and Schools. If we were to replicate this study, we would not necessarily use the same teachers and schools again. Most importantly, *the response data is grouped by schools and teachers within schools*.
 
 
 ## Data for Linear Mixed-Effect Models
@@ -47,7 +47,7 @@ LMM (**L**inear **M**ixed-Effect **M**odels) are suitable for clustered, longitu
 
 In our first example, we had longitudinal data grouped by patient (a random factor). The effect of the patient is a random effect. The effect of the treatment is a fixed effect.
 
-In our second example, we had clustered data grouped by teacher (a random factor). The effect of the teacher is a random effect. The effect of the curriculum is a fixed effect.
+In our second example, we had clustered data grouped by schools and teachers within schools (random factors). The effect of the schools and teachers within schools are random effects. The effect of the curriculum is a fixed effect.
 
 ## Data in Long Format
 In R, LMM data need to be in *long* format. That is, we have one record per subject per each measure of the dependent variable. 
@@ -177,9 +177,10 @@ $$\begin{pmatrix}
 \sigma_{1} & \sigma_{1} & \cdots & \sigma^{2} + \sigma_{1}
 \end{pmatrix}$$
 
-This says that residuals associated with observations on the same subject have equal variance and equal covariance. This is used when an assumption of equal correlation of residuals is plausible. Here we have two parameters to estimate: $\sigma^{2} + \sigma_{1}$
+This says that residuals associated with observations on the same subject have equal variance and equal covariance. This is used when an assumption of equal correlation of residuals is plausible. Here we have two parameters to estimate: $\sigma^{2}$ and $\sigma_{1}$
 
 There are other covariance structures commonly used for $\boldsymbol{R_i}$, but we won't cover those today.
+
 
 ## Simple data for a linear mixed-effect model
 ```{r, cache=TRUE, echo=FALSE}
@@ -198,6 +199,14 @@ p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="
 grid.arrange(p1, p2, nrow=1)
 ```
 
+
+## What do we notice about the data?
+
+- The different groups seem to have the same trajectory, or *slope*
+- The different groups seem to have different starting points, or *intercepts*
+- Each group of data appears as if it could be modeled by a straight line model
+
+If we were to imagine what kind of mathematical process gave rise to this data, we might propose a straight line model with a *fixed* slope coefficient but a *random* intercept.
 
 ## Fitting a linear mixed-effect model in R
 
@@ -220,7 +229,7 @@ ggplot(dat, aes(x,y,color=g)) + geom_point() +
   geom_abline(data=lfits, aes(intercept=int, slope=x, color=g)) +
   geom_abline(intercept=fixef(lme1)[1], slope=fixef(lme1)[2],size=2, alpha=0.4) +
   labs(title="with grouping indicated and fitted linear mixed-effect model") +
-  annotate("text", x=0,y=8,label="Y == 0.61 + 0.49*X + N(0,0.83)[g] + N(0,0.19)", 
+  annotate("text", x=0,y=8,label="Y == (0.61 + N(0,0.83)[g]) + 0.49*X  + N(0,0.19)", 
             parse=TRUE, hjust=0, size = 5)
 ```
 
@@ -243,6 +252,14 @@ p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="
 grid.arrange(p1, p2, nrow=1) 
 ```
 
+## What do we notice about the data?
+
+- The different groups seem to have the same intercept
+- The different groups seem to have *different slopes*
+- Each group of data appears as if it could be modeled by a straight line model
+
+If we were to imagine what kind of mathematical process gave rise to this data, we might propose a straight line model with a *fixed* intercept coefficient but a *random* slope coefficient.
+
 ## Fitting a LMM for random slopes
 
 ```{r, message=FALSE}
@@ -262,7 +279,7 @@ ggplot(dat, aes(x,y,color=g)) + geom_point() +
   geom_abline(data=lfits, aes(intercept=int, slope=x, color=g)) +
   geom_abline(intercept=fixef(lme2)[1], slope=fixef(lme2)[2],size=2, alpha=0.4) +
   labs(title="with grouping indicated and fitted linear mixed-effect model") +
-  annotate("text", x=0,y=11,label="Y == 1.04 + (0.99 + N(0,0.74)[g])*X  + N(0,0.19)", 
+  annotate("text", x=0,y=11,label="Y == 0.49 + (1.61 + N(0,0.82)[g])*X  + N(0,0.19)", 
             parse=TRUE, hjust=0, size = 5)
 ```
 
@@ -322,19 +339,52 @@ The two most commonly used R packages for fitting linear mixed-effect models are
 
 `lme4` also uses different computations than `nlme`. The math is far beyond the scope of this workshop but suffice to say it makes lme4 better for larger data.
 
-## lme4
+## `lme4`
 
 For today's workshop we'll use `lme4`. 
 
 The syntax is a little easier to learn and it seems to be the go-to package in the R community for linear mixed-effect modeling. 
 
+It's worth repeating: `lme4` does not currently provide facilities for modeling different variance-covariance structures for residuals, $\boldsymbol{R_i}$. Residual errors are assumed to be Normally distributed with mean 0 and some variance $\sigma^2$. 
+
 By the way, the "4" in `lme4` refers to the technical fact that `lme4` was programmed using the S4 system in R.
 
-## Selected lme4 Commands
+## Fitting a model with `lme4`
 
-These are some of the most common lme4 functions:
+Assuming one level of grouping, say repeated measures on subjects.
 
-- `lmer()` - Fit a linear mixed-effects model (LMM) to data
+Random intercept:  
+`lme1 <- lmer(dv ~ x1 + (1 | g), data=df)`
+
+Random slope:  
+`lme2 <- lmer(dv ~ x1 + (0 + x1 | g), data=df)`
+
+Correlated random slope and intercept:  
+`lme3 <- lmer(dv ~ x1 + (x1 | g), data=df)`
+
+Uncorrelated random slope and intercept:   
+`lme3 <- lmer(dv ~ x1 + (x1 || g), data=df)`
+
+## Fitting a model with `lme4`
+
+Assuming two levels of grouping, say students clustered in teachers, and teachers within schools:
+
+Random intercept:  
+`lme1 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`
+
+Random slope:  
+`lme2 <- lmer(dv ~ x1 + (0 + x1 | sch/tch), data=df)`
+
+Correlated random slope and intercept:  
+`lme3 <- lmer(dv ~ x1 + (x1 | sch/tch), data=df)`
+
+Uncorrelated random slope and intercept:   
+`lme3 <- lmer(dv ~ x1 + (x1 || sch/tch), data=df)`
+
+## Selected `lme4` extractor functions
+
+Once we fit a model, lme4 has several functions for extracting and viewing model information:
+
 - `summary()` - View summary of fitted LMM 
 - `fixef()` - View estimated fixed effect coefficients 
 - `ranef()` - View predicted random effects
@@ -386,15 +436,16 @@ Where the `form=` argument is an optional formula specifying the desired type of
 
 To check constant variance of random effects:
 
-`pairs(ranef(lme1)[[1]])`
+`plot(ranef(lme1))`
 
 To assess normality of residuals:
 
 `qqnorm(resid(lme1))`  
 
-To asses normality of random effects, say a random intercept:
+To asses normality of random effects:
 
-`qqnorm(ranef(lme1)[[1]]$"(Intercept)")`
+`library(lattice)`   
+`qqmath(ranef(lme1))`
 
 ## REML vs. ML
 
@@ -411,7 +462,7 @@ The choice of ML vs REML affects model comparisons.
 
 We often compare models to see if a smaller model fits as well as a larger model.
 
-We can compare models either by hypothesis testing or by selection criteria.
+We can compare models either by hypothesis testing or by selection criteria (such as AIC or BIC).
 
 When it comes to hypothesis testing, the choice of ML vs REML estimation is important:
 
@@ -419,13 +470,13 @@ When it comes to hypothesis testing, the choice of ML vs REML estimation is impo
 
 > To compare two models fit by ML, one must be nested within the other. 
 
-The function to compare models is `anova()`. It's default behavior is to refit the models with LM before comparing. 
+The function to compare models is `anova()`. Its default behavior is to refit the models with LM before comparing. 
 
-## Testing Hypotheses about random effects
+## Testing hypotheses about random effects
 
 Random effect parameters are measures of variances. Variance is greater than or equal to 0. 
 
-When testing whether or not to include a random effect in a model, we're testing that its variance is 0. In that case our hypothesis test involves a values lying on the boundary of the parameter space.
+When testing whether or not to include a random effect in a model, we're testing that its variance is 0. In that case our hypothesis test involves values lying on the boundary of the parameter space.
 
 ## References
 

@@ -157,14 +157,17 @@ plot(lme3, treat ~ resid(.))
 qqnorm(resid(lme3))
 
 # check constant variance of random effects
-pairs(ranef(lme3)[[1]])
+plot(ranef(lme3))
 
 # check normality of random effects
 qqnorm(ranef(lme3)[[1]]$"(Intercept)") # intercept
-qqnorm(ranef(lme3)$subject$weeks) # slope
+qqnorm(ranef(lme3)[[1]]$weeks) # slope
 
-
-
+# plot predicted random effects for each level of a grouping factor; allows you 
+# to see if there are levels of a grouping factor with extremely large or small
+# predicted random effects.
+library(lattice)
+dotplot(ranef(lme3))
 
 # Model Comparison --------------------------------------------------------
 
@@ -176,4 +179,37 @@ anova(lme1, lme2, lme3)
 
 # notice models are re-fit with ML
 
+
+# using simulation to test for random intercepts
+library(RLRsim)
+# Testing in models with only a single variance component require only the first
+# argument m:
+exactRLRT(m=lme1)
+
+
+# For testing in models with multiple variance components, the fitted model m
+# must contain only the random effect set to zero under the null hypothesis,
+# while mA and m0 are the models under the alternative and the null,
+# respectively
+
+
+
+# m -- The fitted model under the alternative or, for testing in models with
+# multiple variance components, the reduced model containing only the random
+# effect to be tested (see Details), an lme, lmerMod or spm object 
+
+# mA -- The full model under the alternative for testing in models with
+# multiple variance components
+# 
+# m0 -- The model under the null for testing in models with multiple variance
+# components
+
+mA <- lme3
+m0 <- update(mA, . ~ . - (weeks | subject) + (1 | subject) + (0 + weeks | subject))
+m.slope  <- update(mA, . ~ . - (weeks | subject) + (0 + weeks | subject))
+#test for subject specific slopes:
+exactRLRT(m.slope, mA, m0)
+
+
+ndvs <- simulate(lme3, nsim = 1)
 
