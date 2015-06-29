@@ -9,7 +9,7 @@
 library(lme4)
 library(ggplot2)
 library(effects)
-library(faraway)
+library(faraway) # for the data sets
 
 
 # Fitting Models using lmer() ---------------------------------------------
@@ -212,4 +212,109 @@ exactRLRT(m.slope, mA, m0)
 
 
 ndvs <- simulate(lme3, nsim = 1)
+
+
+# multilevel model
+jspr <- read.csv("jspr.csv")
+str(jspr)
+# data from primary schools in inner London. Source: Mortimore, P., P. Sammons, 
+# L. Stoll, D. Lewis, and R. Ecob (1988). School Matters. Wells, UK: Open Books.
+
+# We have measures of students within classes within schools.
+# Up to 4 classes with a school
+# response variable is english, an english test score.
+
+# social is class of the father: I=1; II=2; III nonmanual=3; III manual=4; IV=5;
+# V=6; Long-term unemployed=7; Not currently employed=8; Father absent=9
+
+# want to model English as a function of gender, social class and Raven's test
+# score from first year.
+
+# set school, class and social as factors:
+jspr$school <- factor(jspr$school)
+jspr$class <- factor(jspr$class)
+jspr$social <- factor(jspr$social)
+
+# explore the data
+
+# how manu schools?
+length(unique(jspr$school))
+
+# break down of boy/girl
+table(jspr$gender)
+
+# break down of social
+table(jspr$social)
+
+# break down of gender and social
+with(jspr, table(gender, social))
+
+# how many students in each class in each school
+with(jspr, table(class, school))
+
+# mean english score per school
+aggregate(english ~ school, data=jsp, mean)
+# variability between schools
+
+# mean english score per class per school
+aggregate(english ~ school + class, data=jsp, mean)
+mData <- aggregate(english ~ school + class, data=jsp, mean)
+mData[order(mData$school),]
+# variability between classes within schools
+
+aggregate(english ~ gender, data=jspr, mean)
+aggregate(english ~ gender + social, data=jspr, mean)
+
+# some visual exploration
+ggplot(jspr, aes(x=gender, y=english)) + geom_boxplot()
+ggplot(jspr, aes(x=gender, y=english)) + geom_boxplot() + facet_wrap(~school)
+
+ggplot(jspr, aes(x=social, y=english)) + geom_boxplot()
+ggplot(jspr, aes(x=social, y=english)) + geom_boxplot() + facet_wrap(~gender)
+
+ggplot(jspr, aes(x=raven, y=english)) + geom_point()
+ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter())
+ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
+  geom_smooth()
+ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
+  geom_smooth() + facet_wrap(~gender)
+
+ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
+  geom_smooth() + facet_wrap(~social)
+
+# with grouping
+ggplot(jspr, aes(x=raven, y=english)) + geom_point() + facet_wrap(~school)
+ggplot(jspr, aes(x=raven, y=english)) + geom_point() + geom_smooth(method="lm", se=F) +
+  facet_wrap(~school)
+# random slope for raven?
+
+# interaction plot
+with(jspr, interaction.plot(x.factor = social,trace.factor = gender,response = english))
+
+lmeEng1 <- lmer(english ~ raven + gender*social + (1 | school/class), data=jspr)
+summary(lmeEng1)
+fixef(lmeEng1)
+ranef(lmeEng1)
+coef(lmeEng1)
+anova(lmeEng1)
+
+lmeEng2 <- lmer(english ~ raven + gender*social + (raven | school/class), data=jspr)
+anova(lmeEng1, lmeEng2, refit=FALSE)
+# random slope for raven doesn't appear to be necessary;
+# but recall, the test is conservative.
+
+# observed value of LRT test statsitcs
+oLRT <- -2*(logLik(lmeEng1) - logLik(lmeEng2))
+
+simulate(lmeEng2, re.form=~(raven | school/class))
+
+predict(lmeEng1, re.form=~raven + gender * social + (1 | school/class))
+# simulate likelihood ratio test statistics
+eval <- logical(100)
+for(i in 1:100){
+  yN <- simulate(lmeEng1)
+  ll1 <- as.numeric(logLik(refit(lmeEng1, newresp = yN)))
+  ll2 <- as.numeric(logLik(refit(lmeEng2, newresp = yN)))
+  eval[i] <- (-2*(ll1 - ll2)) >= oLRT
+}
 

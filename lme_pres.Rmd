@@ -345,7 +345,7 @@ For today's workshop we'll use `lme4`.
 
 The syntax is a little easier to learn and it seems to be the go-to package in the R community for linear mixed-effect modeling. 
 
-It's worth repeating: `lme4` does not currently provide facilities for modeling different variance-covariance structures for residuals, $\boldsymbol{R_i}$. Residual errors are assumed to be Normally distributed with mean 0 and some variance $\sigma^2$. 
+It's worth repeating: `lme4` does not currently provide facilities for modeling different variance-covariance structures for residuals, $\boldsymbol{R_i}$. Residual errors are assumed to be Normally distributed with mean 0 and variance $\sigma^2$. 
 
 By the way, the "4" in `lme4` refers to the technical fact that `lme4` was programmed using the S4 system in R.
 
@@ -353,32 +353,32 @@ By the way, the "4" in `lme4` refers to the technical fact that `lme4` was progr
 
 Assuming one level of grouping, say repeated measures on subjects.
 
-Random intercept:  
+**Random intercept**:  
 `lme1 <- lmer(dv ~ x1 + (1 | g), data=df)`
 
-Random slope:  
+**Random slope**:  
 `lme2 <- lmer(dv ~ x1 + (0 + x1 | g), data=df)`
 
-Correlated random slope and intercept:  
+**Correlated random slope and intercept**:  
 `lme3 <- lmer(dv ~ x1 + (x1 | g), data=df)`
 
-Uncorrelated random slope and intercept:   
+**Uncorrelated random slope and intercept**:   
 `lme3 <- lmer(dv ~ x1 + (x1 || g), data=df)`
 
 ## Fitting a model with `lme4`
 
 Assuming two levels of grouping, say students clustered in teachers, and teachers within schools:
 
-Random intercept:  
+**Random intercept**:  
 `lme1 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`
 
-Random slope:  
+**Random slope**:  
 `lme2 <- lmer(dv ~ x1 + (0 + x1 | sch/tch), data=df)`
 
-Correlated random slope and intercept:  
+**Correlated random slope and intercept**:  
 `lme3 <- lmer(dv ~ x1 + (x1 | sch/tch), data=df)`
 
-Uncorrelated random slope and intercept:   
+**Uncorrelated random slope and intercept**:   
 `lme3 <- lmer(dv ~ x1 + (x1 || sch/tch), data=df)`
 
 ## Selected `lme4` extractor functions
@@ -417,6 +417,16 @@ Say your fitted model object is `lme1`. Two ways to compute confidence intervals
 `confint(lme1, method="boot")`
 
 > parametric bootstrapping (B = 500) with confidence intervals computed from the bootstrap distribution
+
+## But I want p-values!
+
+The `lmerTest` package provides the kind of p-values SAS provides (based on Satterthwaite's approximations). Just load it, run `lmer` as usual and call `summary` on the object.
+
+`library(lmerTest)`   
+`m <- lmer(dv ~ x1 + (x1 | g), data=df)`   
+`summary(m)`   
+
+A column of p-values is included in the summary output. Again, they're *approximate*.
 
 ## Diagnostic plots
 
@@ -466,7 +476,7 @@ We can compare models either by hypothesis testing or by selection criteria (suc
 
 When it comes to hypothesis testing, the choice of ML vs REML estimation is important:
 
-> To compare two models fit by REML, each must have the same fixed effects. That is, we can only compare models with different random effects if both were fit with REML.
+> To compare two models fit by REML, each must have the same fixed effects. 
 
 > To compare two models fit by ML, one must be nested within the other. 
 
@@ -477,6 +487,25 @@ The function to compare models is `anova()`. Its default behavior is to refit th
 Random effect parameters are measures of variances. Variance is greater than or equal to 0. 
 
 When testing whether or not to include a random effect in a model, we're testing that its variance is 0. In that case our hypothesis test involves values lying on the boundary of the parameter space.
+
+The result is that the standard hypothesis test (ie, a likelihood ratio test) is *conservative*. The p-value is too high.
+
+One way around this is to simulate likelihood ratio test statistics and compute an empirical p-value.
+
+## Testing hypotheses about fixed effects
+
+
+
+## Making predictions
+
+BLUPs
+explore data
+fit models (p-values)
+extract info
+test models
+make predictions
+assumptions
+
 
 ## References
 
