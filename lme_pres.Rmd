@@ -401,12 +401,9 @@ Also recall that p-values are determined using null reference distributions. Und
 
 In LMM, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` author elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
 
-You can read what the author of `lme4` has to say:  
-https://stat.ethz.ch/pipermail/r-help/2006-May/094765.html
-
 ## How do I know if a coefficient is "significant"?
 
-Easiest way is to compute 95% confidence intervals using the `confint()` function. If the interval contains 0, it is not significant. Further, confidence intervals give an indication of coefficient size and variability.
+One way is to compute 95% confidence intervals using the `confint()` function. If the interval contains 0, it is not significant. Further, confidence intervals give an indication of coefficient size and variability.
 
 Say your fitted model object is `lme1`. Two ways to compute confidence intervals are as follows:
 
@@ -428,6 +425,29 @@ The `lmerTest` package provides the kind of p-values SAS provides (based on Satt
 
 A column of p-values is included in the summary output. Again, they're *approximate*.
 
+## Assessing significance of fixed-effect factors
+
+Fixed-effect factors with more than two levels should be assessed with `anova`, not by examining p-values in the `summary` output.
+
+Say your fitted model object `lme1` contains fixed-effect factors. To assess their significance:
+
+`anova(lme1)`
+
+Two things to note:
+
+1. The tests are *sequential*. (aka, Type I)
+2. No p-values are provided. Same explanation as before.
+
+## But I want p-values!
+
+The `car` package provides a functions called `Anova` that provides approximate p-values and tests each predictor after all others as opposed to sequentially (aka, Type II). 
+
+To use with, say, a fitted model called `lme1`:
+
+`library(car)`   
+`Anova(lme1)`
+
+
 ## Diagnostic plots
 
 Once we fit a LMM, we should assess our assumptions:
@@ -442,20 +462,37 @@ Once we fit a LMM, we should assess our assumptions:
 
 Where the `form=` argument is an optional formula specifying the desired type of plot.
 
+## Examples of the `form=` argument
+
+Say we fit the folllowing LMM:   
+`lme1 <- lmer(y ~ x + (x | id), data=df)`
+
+**standarized residuals vs fitted values**:   
+`plot(lme1)`
+
+**standardized residuals versus fitted values by x**:    
+`plot(lme1, form = resid(.) ~ fitted(.) | x)`
+
+**box-plots of residuals by id**:    
+`plot(lme1, form = id ~ resid(.))`
+
+**observed versus fitted values by id**:   
+`plot(lme1, y ~ fitted(.) | id)`
+
+
 ## Diagnostic plots continued
 
-To check constant variance of random effects:
-
+**To check constant variance of random effects**:   
 `plot(ranef(lme1))`
 
-To assess normality of residuals:
-
+**To assess normality of residuals**:   
 `qqnorm(resid(lme1))`  
 
-To asses normality of random effects:
-
+**To asses normality of random effects**:     
 `library(lattice)`   
 `qqmath(ranef(lme1))`
+
+Let's go to R.
 
 ## REML vs. ML
 
@@ -480,9 +517,22 @@ When it comes to hypothesis testing, the choice of ML vs REML estimation is impo
 
 > To compare two models fit by ML, one must be nested within the other. 
 
-The function to compare models is `anova()`. Its default behavior is to refit the models with LM before comparing. 
+The function to compare models is `anova()`. Its default behavior is to refit the models with ML before comparing. Specify `refit=FALSE` to supress refitting.
 
-## Testing hypotheses about random effects
+## Comparing nested models
+
+Say we fit two models:   
+`lme1 <- lmer(y ~ x + z + x:z + (1 | g), data=df)`   
+`lme2 <- lmer(y ~ x + z + (1 | g), data=df)`   
+
+The following refits the models with ML and compares them via hypothesis test:   
+`anova(lme1, lme2)`
+
+Notice that `lme2` is nested in `lme1`. That is, `lme2` is a special case of `lme1` with an interaction coefficient for `x:z` equal to 0.
+
+The null hypothesis states the models are equal. Rejecting the null means we prefer the larger model.
+
+## Comparing models with different random effects
 
 Random effect parameters are measures of variances. Variance is greater than or equal to 0. 
 
@@ -490,32 +540,31 @@ When testing whether or not to include a random effect in a model, we're testing
 
 The result is that the standard hypothesis test (ie, a likelihood ratio test) is *conservative*. The p-value is too high.
 
-One way around this is to simulate likelihood ratio test statistics and compute an empirical p-value.
+If you have a small p-value (say < 0.001), that's not a problem. 
 
-## Testing hypotheses about fixed effects
+If you have a p-value close to significance, (say anout 0.10) you may want to consider calculating a corrected p-value using a *mixture of chi-square distributions*.
 
+## A mixture of chi-square distributions
 
+A likelihood ratio test (LRT) statistic has a chi-square distribution with degrees of freedom equal to the difference in parameters between two models.
 
-## Making predictions
+Let's say our LRT is on 2 degrees of freedom. The null distribution of this test statistic is NOT a chi-square with 2 degrees of freedom since our null value (variance = 0) is on the boundary of the parameter space.
 
-BLUPs
-explore data
-fit models (p-values)
-extract info
-test models
-make predictions
-assumptions
+It turns out that $0.5\chi_{df}^{2} + 0.5\chi_{df-1}^{2}$ can serve as a reference null distribution for computing the p-value.
 
+We'll demonstrate this in the R script. Let's go!
 
 ## References
 
-Linear Mixed Models.
+Faraway, J. (2006). *Extending the Linear Model with R*. Chapman and Hall/CRC.
 
-Linear Mixed-Effect Models Using R
+Fox, J. & Weisberg, S. (2015). *Mixed-Effects Models in R: an appendix to An R Companion to Applied Regression*.
 
-Mixed-Effects Models in R
+Galecki, A. and Burzykowski T. (2013). *Linear Mixed-Effect Models Using R*. Springer.
 
-Extending the Linear Model with R. Faraway
+Pinheiro, J. & Bates, D. (2000). *Mixed-Effects Models in S and S-PLUS*. Springer.
+
+West, B., Welch, K., & Galecki, A. (2015) *Linear Mixed Models*. Chapman and Hall/CRC.
 
 DRAFT r-sig-mixed-models FAQ:   
 http://glmm.wikidot.com/faq

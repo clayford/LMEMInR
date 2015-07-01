@@ -3,18 +3,18 @@
 # Linear Mixed-Effect Modeling with R
 # Fall 2015
 
-# pkgs <- c("lme4","ggplot2", "faraway","effects")
+# pkgs <- c("lme4","ggplot2", "effects")
 # install.packages(pkgs)
 
 library(lme4)
 library(ggplot2)
 library(effects)
-library(faraway) # for the data sets
-
 
 # Fitting Models using lmer() ---------------------------------------------
 
-data("ratdrink")
+# EXAMPLE 1
+
+ratdrink <- read.csv("ratdrink.csv")
 
 # The data consist of 5 weekly measurements of body weight for 27 rats. The
 # first 10 rats are on a control treatment while 7 rats have thyroxine added to
@@ -41,61 +41,79 @@ ggplot(ratdrink, aes(x=weeks, y=wt, color=treat, group=subject)) +
 ggplot(ratdrink, aes(x=weeks, y=wt, group=subject)) + 
   geom_point() + geom_line() + facet_wrap(~ treat)
 
-# linear mixed-effect model
+# interaction plot
+with(ratdrink, interaction.plot(x.factor = weeks, trace.factor = treat, response = wt))
+
+# linear mixed-effect model, no interaction between treat and week
 # random intercept
-lme1 <- lmer(wt ~ treat + weeks + (1 | subject), data=ratdrink)
-lme1
-summary(lme1) # notice: no p-values!
-fixef(lme1)
-ranef(lme1)
-coef(lme1) # fitted model per group
+lmm1 <- lmer(wt ~ weeks + treat + (1 | subject), data=ratdrink)
+lmm1
+summary(lmm1) # notice: no p-values!
+fixef(lmm1)
+ranef(lmm1)
+coef(lmm1) # fitted model per group
 
-# just the intercepts
-coef(lme1)$subject[,1]
+# Notice the (Intercept) column is the sum of the fixed intercept and random
+# intercept:
 
-# notice the intercepts are the sum of the random effects and the fixed
-# Intercept estimate:
-fixef(lme1)[1] # fixed effect estimate of Intercept
-ranef(lme1)$subject # predicted random effects for Intercept
-fixef(lme1)[1] + ranef(lme1)$subject == coef(lme1)$subject[,1]
+fixef(lmm1)[1] # fixed effect estimate of Intercept
+ranef(lmm1)$subject # predicted random effects for Intercept
+
+# add them to get the intercept column in coef(lmm1)
+fixef(lmm1)[1] + ranef(lmm1)$subject
+cbind(coef(lmm1)$subject[,1], fixef(lmm1)[1] + ranef(lmm1)$subject)
+fixef(lmm1)[1] + ranef(lmm1)$subject == coef(lmm1)$subject[,1]
 
 # estimates of variance parameters
-VarCorr(lme1)
+VarCorr(lmm1)
 
-
-# fit random intercept and random slope
-lme2 <- lmer(wt ~ treat + weeks + (weeks | subject), data=ratdrink)
-summary(lme2)
-fixef(lme2)
-ranef(lme2)
-coef(lme2) # fitted model per group
+# fit random intercept and random slope for weeks;
+lmm2 <- lmer(wt ~ treat + weeks + (weeks | subject), data=ratdrink)
+summary(lmm2)
+fixef(lmm2)
+ranef(lmm2)
+coef(lmm2) # fitted model per group
 
 
 # Again notice the intercepts and slopes are the sum of the random effects and
 # the fixed Intercept and slope estimates:
-fixef(lme2)[c(1,4)] # fixed effect estimates
-ranef(lme2)$subject # predicted random effects
-fixef(lme2)[1] + ranef(lme2)$subject[,1] == coef(lme2)$subject[,1]
-fixef(lme2)[4] + ranef(lme2)$subject[,2] == coef(lme2)$subject[,4]
+fixef(lmm2)[c(1,4)] # fixed effect estimates
+ranef(lmm2)$subject # predicted random effects
+fixef(lmm2)[1] + ranef(lmm2)$subject[,1] == coef(lmm2)$subject[,1]
+fixef(lmm2)[4] + ranef(lmm2)$subject[,2] == coef(lmm2)$subject[,4]
+
+
+# fit model with uncorrelated random intercept and slope:
+lmm3 <- lmer(wt ~ treat + weeks + (weeks || subject), data=ratdrink)
+summary(lmm3)
+fixef(lmm3)
+ranef(lmm3)
+coef(lmm3) # fitted model per group
 
 
 # fit model with interaction and random slopes and intercept
-lme3 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject), 
+lmm4 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject), 
              data=ratdrink)
-# or lme3 <- lmer(wt ~ treat * weeks + (weeks | subject), data=ratdrink)
-summary(lme3)
-fixef(lme3)
-ranef(lme3)
+# or lmm4 <- lmer(wt ~ treat * weeks + (weeks | subject), data=ratdrink)
+summary(lmm4)
+fixef(lmm4)
+ranef(lmm4)
 
-VarCorr(lme3)
+VarCorr(lmm4)
+
+# fit model with interaction and uncorrelated random slopes and intercept
+lmm5 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks || subject), 
+             data=ratdrink)
+summary(lmm5)
 
 
 # Effect Plots ------------------------------------------------------------
 
-# plot fitted model for lme3
+# plot fitted model for lmm4: correlated random intercept and slope with
+# interaction betweem weeks and treat:
 
 # a rather complicated way using ggplot2
-fe <- fixef(lme3)
+fe <- fixef(lmm4)
 cols <- scales::hue_pal()(3) # get the colors that ggplot generated
 ggplot(ratdrink, aes(x=weeks, y=wt, color=treat)) + geom_point() +
   geom_abline(intercept=fe[1], slope=fe[4], color=cols[1]) +
@@ -104,30 +122,42 @@ ggplot(ratdrink, aes(x=weeks, y=wt, color=treat)) + geom_point() +
 
 # an easier way using the effects package
 library(effects)
-plot(allEffects(lme3))
+plot(allEffects(lmm4))
 # combined into one plot
-plot(allEffects(lme3), multiline=TRUE)
+plot(allEffects(lmm4), multiline=TRUE)
 # combined into one plot with confidence bands
-plot(allEffects(lme3), multiline=TRUE, ci.style = "bands")
+plot(allEffects(lmm4), multiline=TRUE, ci.style = "bands")
 # see ?allEffects and ?plot.eff for more options and examples
 
 
 # back to presentation
 
 
-# Confidence Intervals ----------------------------------------------------
+
+# Assessing Significance --------------------------------------------------
+
+# confidence intervals
 
 # profile method
-confint(lme3)
+confint(lmm4)
 # oldNames = FALSE changes the labeling
-confint(lme3, oldNames = FALSE)
+confint(lmm4, oldNames = FALSE)
 
 # bootstrap method with a progress bar (nsim = 500)
-confint(lme3, method = "boot", .progress="txt")
+confint(lmm4, method = "boot", .progress="txt")
 # add a percent completion indicator
-confint(lme3, method = "boot", nsim = 200,
+confint(lmm4, method = "boot", nsim = 200,
         .progress="txt", PBargs=list(style=3))
 
+# assessing fixed-effect factors. In this case "treat". It has three levels.
+levels(ratdrink$treat)
+
+# sequential test (Type I), no p-values
+anova(lmm4)
+
+# test each term after all others (Type II), approx p-values
+library(car)
+Anova(lmm4)
 
 
 # Diagnostics -------------------------------------------------------------
@@ -136,83 +166,106 @@ confint(lme3, method = "boot", nsim = 200,
 
 # check constant variance assumption
 # residual vs. fitted values
-plot(lme3)
+plot(lmm4)
 # same as this:
-plot(resid(lme3) ~ fitted(lme3))
+plot(resid(lmm4) ~ fitted(lmm4))
 abline(h=0)
 
 
 # plots of residuals by weeks
-plot(lme3, form = resid(.) ~ weeks)
+plot(lmm4, form = resid(.) ~ weeks)
 # by weeks and treatment
-plot(lme3, form = resid(.) ~ weeks | treat)
+plot(lmm4, form = resid(.) ~ weeks | treat)
 
 # residuals by subjects
-plot(lme3, subject ~ resid(.))
+plot(lmm4, subject ~ resid(.))
+plot(lmm4, factor(subject) ~ resid(.))
 
 # residuals by treat
-plot(lme3, treat ~ resid(.))
+plot(lmm4, treat ~ resid(.))
 
 # check normality of residuals
-qqnorm(resid(lme3))
+qqnorm(resid(lmm4))
 
 # check constant variance of random effects
-plot(ranef(lme3))
+plot(ranef(lmm4))
 
 # check normality of random effects
-qqnorm(ranef(lme3)[[1]]$"(Intercept)") # intercept
-qqnorm(ranef(lme3)[[1]]$weeks) # slope
+library(lattice)
+qqmath(ranef(lmm4))
+
+# another way without lattice
+qqnorm(ranef(lmm4)[[1]]$"(Intercept)") # intercept
+qqnorm(ranef(lmm4)[[1]]$weeks) # slope
 
 # plot predicted random effects for each level of a grouping factor; allows you 
 # to see if there are levels of a grouping factor with extremely large or small
 # predicted random effects.
-library(lattice)
-dotplot(ranef(lme3))
+dotplot(ranef(lmm4))
+
+# back to presentation
 
 # Model Comparison --------------------------------------------------------
 
-
-# compare models 
-# comparisons are sequential (1 vs. 2, 2 vs. 3)
-anova(lme1, lme2, lme3)
-# lme3 appears to be the "best" model
-
+# do we need a random effect for weeks (ie, a random slope)?
+anova(lmm1, lmm2)
 # notice models are re-fit with ML
 
+# suppress since fixed effects are the same in each model:
+anova(lmm1, lmm2, refit = FALSE)
 
-# using simulation to test for random intercepts
-library(RLRsim)
-# Testing in models with only a single variance component require only the first
-# argument m:
-exactRLRT(m=lme1)
+# p-value is tiny, but let's compute a corrected p-value anyway. In the test we 
+# see that it's on 2 degrees of freedom, but recall the null distribution is not
+# on 2 degrees of freedom but rather a mixture of distributions.
+0.5*pchisq(122.43, 2, lower.tail = FALSE) + 0.5*pchisq(122.43, 1, lower.tail = FALSE)
 
+# even smaller!
 
-# For testing in models with multiple variance components, the fitted model m
-# must contain only the random effect set to zero under the null hypothesis,
-# while mA and m0 are the models under the alternative and the null,
-# respectively
-
-
-
-# m -- The fitted model under the alternative or, for testing in models with
-# multiple variance components, the reduced model containing only the random
-# effect to be tested (see Details), an lme, lmerMod or spm object 
-
-# mA -- The full model under the alternative for testing in models with
-# multiple variance components
-# 
-# m0 -- The model under the null for testing in models with multiple variance
-# components
-
-mA <- lme3
-m0 <- update(mA, . ~ . - (weeks | subject) + (1 | subject) + (0 + weeks | subject))
-m.slope  <- update(mA, . ~ . - (weeks | subject) + (0 + weeks | subject))
-#test for subject specific slopes:
-exactRLRT(m.slope, mA, m0)
+# we can write a function to automate this:
+pvalMix <- function(stat,df){
+  0.5*pchisq(stat, df, lower.tail = FALSE) + 
+     0.5*pchisq(stat, df-1, lower.tail = FALSE)
+}
+pvalMix(122.43, 2)
 
 
-ndvs <- simulate(lme3, nsim = 1)
+# compare model with correlated random effects to model without correlated
+# random effects:
+anova(lmm2, lmm3)
+# let's compute corrected p-value
+pvalMix(0.9721, 1)
+# still not significant; prefer lmm3, simpler model with no correlation between 
+# random intercept and slope.
 
+
+# let's compare lmm5 with lmm3:
+formula(lmm3)
+formula(lmm5)
+
+anova(lmm3, lmm5)
+# interaction appears significant
+
+plot(lmm5)
+plot(lmm5, treat ~ resid(.))
+plot(ranef(lmm5))
+qqmath(ranef(lmm5))
+
+plot(lmm5, resid(.) ~ weeks | treat)
+# thyroxine residuals exhibits a pattern...
+# let's look at data again
+ggplot(ratdrink, aes(x=weeks, y=wt, group=subject)) + 
+  geom_point() + geom_line() + facet_wrap(~ treat)
+
+# visualize; no difference in the fixed effects
+plot(allEffects(lmm5), multiline=TRUE, main="lmm5")
+plot(allEffects(lmm4), multiline=TRUE, main="lmm4")
+
+VarCorr(lmm4)
+VarCorr(lmm5)
+
+
+
+# EXAMPLE 2
 
 # multilevel model
 jspr <- read.csv("jspr.csv")
@@ -257,7 +310,6 @@ aggregate(english ~ school, data=jsp, mean)
 # variability between schools
 
 # mean english score per class per school
-aggregate(english ~ school + class, data=jsp, mean)
 mData <- aggregate(english ~ school + class, data=jsp, mean)
 mData[order(mData$school),]
 # variability between classes within schools
@@ -291,30 +343,51 @@ ggplot(jspr, aes(x=raven, y=english)) + geom_point() + geom_smooth(method="lm", 
 # interaction plot
 with(jspr, interaction.plot(x.factor = social,trace.factor = gender,response = english))
 
+
+lmeEng0 <- lmer(english ~ 1 + (1 | school), data=jspr)
+summary(lmeEng0)
+lmeEng0a <- lmer(english ~ 1 + (1 | school/class), data=jspr)
+summary(lmeEng0a)
+
+anova(lmeEng0, lmeEng0a, refit=FALSE)
+# looks like we should keep the class within school random effect
+
 lmeEng1 <- lmer(english ~ raven + gender*social + (1 | school/class), data=jspr)
 summary(lmeEng1)
+print(summary(lmeEng1),corr=FALSE) # without the correlation matrix of fixed-effect coefficients.
+VarCorr(lmeEng1)
 fixef(lmeEng1)
 ranef(lmeEng1)
 coef(lmeEng1)
-anova(lmeEng1)
+anova(lmeEng1) # sequential F tests
 
-lmeEng2 <- lmer(english ~ raven + gender*social + (raven | school/class), data=jspr)
-anova(lmeEng1, lmeEng2, refit=FALSE)
-# random slope for raven doesn't appear to be necessary;
-# but recall, the test is conservative.
+# If you want p-values
+library(car)
+Anova(lmeEng1) # a Type-II test
+# Type-II tests are calculated according to the principle of marginality,
+# testing each term after all others, except ignoring the term's higher-order
+# relatives;
 
-# observed value of LRT test statsitcs
-oLRT <- -2*(logLik(lmeEng1) - logLik(lmeEng2))
 
-simulate(lmeEng2, re.form=~(raven | school/class))
+# remove interaction for gender and social
+lmeEng2 <- lmer(english ~ raven + gender + social + (1 | school/class), data=jspr)
+print(summary(lmeEng2), corr=FALSE)
+VarCorr(lmeEng2)
+fixef(lmeEng2)
+ranef(lmeEng2)
+coef(lmeEng2)
+anova(lmeEng2)
+Anova(lmeEng2)
 
-predict(lmeEng1, re.form=~raven + gender * social + (1 | school/class))
-# simulate likelihood ratio test statistics
-eval <- logical(100)
-for(i in 1:100){
-  yN <- simulate(lmeEng1)
-  ll1 <- as.numeric(logLik(refit(lmeEng1, newresp = yN)))
-  ll2 <- as.numeric(logLik(refit(lmeEng2, newresp = yN)))
-  eval[i] <- (-2*(ll1 - ll2)) >= oLRT
-}
+# visual model fit for population
+plot(allEffects(lmeEng2))
+
+
+lmeEng3 <- lmer(english ~ raven + gender + social + (raven | school/class), data=jspr)
+anova(lmeEng2, lmeEng3, refit=FALSE)
+# corrected p-value
+pvalMix(8.0432, df=4)
+# looks like we could safely do without a random effect for raven
+
+
 
