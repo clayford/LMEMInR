@@ -26,15 +26,15 @@ If we repeat the analysis on new data, the *repeatable* variables would be colle
 
 ## Example
 
-We have a new treatment for a disease. We carry out an experiment and randomly prescribe the treatment or placebo to patients and collect response data every two weeks for two months to gauge efficacy. 
+We have a new treatment for a disease. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every two weeks for two months to gauge efficacy. 
 
 - The Fixed Effect is Treatment. If we were to replicate this study, we would use this variable again.  
 
-- The Random Effect is Patient. If we were to replicate this study, we would not use the same patients again. In Most importantly, *the response data is grouped by patient*.  
+- The Random Effect is Patient. If we were to replicate this study, we would not use the same patients again. Most importantly, *the response data is grouped by patient*.  
 
 ## Another example
 
-We have a new computer-based math curriculum. We carry out an experiment and randomly prescribe either the new curriculum or current curriculum to teachers in various schools and measure change in student pre- and post-test scores. 
+We have a new computer-based math curriculum. We carry out an experiment where we randomly prescribe either the new curriculum or current curriculum to teachers in various schools and measure change in student pre- and post-test scores. 
 
 - The Fixed Effect is Curriculum. If we were to replicate this study, we would use this variable again.  
 
@@ -57,7 +57,7 @@ library(lme4)
 head(sleepstudy)
 ```
 
-The dependent variable is `Reaction`. Notice we have one record per subject per each measure of `Reaction`.
+The dependent variable is `Reaction`. Notice we have one record per subject per each measure of `Reaction`. Here, `Subject` is the random effect.
 
 ## Specification of a Linear Model
 
@@ -88,7 +88,7 @@ ggplot(dat, aes(x,y)) + geom_point()
 
 ```{r}
 m1 <- lm(y ~ x)
-coef(m1) # estimate coefficients
+coef(m1) # model coefficients
 summary(m1)$sigma # estimate of error standard deviation
 ```
 
@@ -383,7 +383,7 @@ Assuming two levels of grouping, say students clustered in teachers, and teacher
 
 ## Selected `lme4` extractor functions
 
-Once we fit a model, lme4 has several functions for extracting and viewing model information:
+Once we fit a model, `lme4` has several functions for extracting and viewing model information:
 
 - `summary()` - View summary of fitted LMM 
 - `fixef()` - View estimated fixed effect coefficients 
@@ -427,7 +427,7 @@ A column of p-values is included in the summary output. Again, they're *approxim
 
 ## Assessing significance of fixed-effect factors
 
-Fixed-effect factors with more than two levels should be assessed with `anova`, not by examining p-values in the `summary` output.
+Fixed-effect factors with more than two levels should be assessed with `anova`, not by examining p-values in the `summary` output (which is easy since there are none in `lme4` summaries).
 
 Say your fitted model object `lme1` contains fixed-effect factors. To assess their significance:
 
@@ -440,7 +440,7 @@ Two things to note:
 
 ## But I want p-values!
 
-The `car` package provides a functions called `Anova` that provides approximate p-values and tests each predictor after all others as opposed to sequentially (aka, Type II). 
+The `car` package provides a functions called `Anova` that provides approximate p-values and tests each predictor after all others (Type II) as opposed to sequentially (Type I). 
 
 To use with, say, a fitted model called `lme1`:
 
@@ -542,7 +542,7 @@ The result is that the standard hypothesis test (ie, a likelihood ratio test) is
 
 If you have a small p-value (say < 0.001), that's not a problem. 
 
-If you have a p-value close to significance, (say anout 0.10) you may want to consider calculating a corrected p-value using a *mixture of chi-square distributions*.
+If you have a p-value close to significance, (say about 0.10) you may want to consider calculating a corrected p-value using a *mixture of chi-square distributions*.
 
 ## A mixture of chi-square distributions
 
@@ -550,9 +550,11 @@ A likelihood ratio test (LRT) statistic has a chi-square distribution with degre
 
 Let's say our LRT is on 2 degrees of freedom. The null distribution of this test statistic is NOT a chi-square with 2 degrees of freedom since our null value (variance = 0) is on the boundary of the parameter space.
 
-It turns out that $0.5\chi_{df}^{2} + 0.5\chi_{df-1}^{2}$ can serve as a reference null distribution for computing the p-value.
+It's been suggested that a 50:50 mixture, $0.5\chi_{df}^{2} + 0.5\chi_{df-1}^{2}$, can serve as a reference null distribution for computing the p-value. But this is still only an approximation.
 
 We'll demonstrate this in the R script. Let's go!
+
+
 
 ## References
 

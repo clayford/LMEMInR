@@ -3,18 +3,19 @@
 # Linear Mixed-Effect Modeling with R
 # Fall 2015
 
-# pkgs <- c("lme4","ggplot2", "effects")
+# pkgs <- c("lme4","ggplot2", "effects", "car")
 # install.packages(pkgs)
 
 library(lme4)
 library(ggplot2)
 library(effects)
+library(car)
 
 # Fitting Models using lmer() ---------------------------------------------
 
 # EXAMPLE 1
 
-ratdrink <- read.csv("ratdrink.csv")
+ratdrink <- read.csv("https://github.com/clayford/LMEMInR/raw/master/ratdrink.csv")
 
 # The data consist of 5 weekly measurements of body weight for 27 rats. The
 # first 10 rats are on a control treatment while 7 rats have thyroxine added to
@@ -28,7 +29,7 @@ table(ratdrink$subject)
 with(ratdrink, table(subject,weeks))
 # summary stats
 aggregate(wt ~ treat, data=ratdrink, mean)
-aggregate(wt ~ treat + weeks, data=ratdrink, mean)
+aggregate(wt ~ weeks + treat, data=ratdrink, mean)
 aggregate(wt ~ treat, data=ratdrink, sd)
 
 # exploratory plots
@@ -121,7 +122,7 @@ ggplot(ratdrink, aes(x=weeks, y=wt, color=treat)) + geom_point() +
   geom_abline(intercept=fe[1] + fe[3], slope=fe[4] + fe[6], color=cols[3])
 
 # an easier way using the effects package
-library(effects)
+# library(effects)
 plot(allEffects(lmm4))
 # combined into one plot
 plot(allEffects(lmm4), multiline=TRUE)
@@ -156,7 +157,7 @@ levels(ratdrink$treat)
 anova(lmm4)
 
 # test each term after all others (Type II), approx p-values
-library(car)
+# library(car)
 Anova(lmm4)
 
 
@@ -268,7 +269,7 @@ VarCorr(lmm5)
 # EXAMPLE 2
 
 # multilevel model
-jspr <- read.csv("jspr.csv")
+jspr <- read.csv("https://github.com/clayford/LMEMInR/raw/master/jspr.csv")
 str(jspr)
 # data from primary schools in inner London. Source: Mortimore, P., P. Sammons, 
 # L. Stoll, D. Lewis, and R. Ecob (1988). School Matters. Wells, UK: Open Books.
@@ -332,7 +333,9 @@ ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
   geom_smooth() + facet_wrap(~gender)
 
 ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
-  geom_smooth() + facet_wrap(~social)
+  geom_smooth() + facet_wrap(~social) +
+  labs(title="English score vs Raven assessment by Social Class")
+
 
 # with grouping
 ggplot(jspr, aes(x=raven, y=english)) + geom_point() + facet_wrap(~school)
@@ -362,7 +365,7 @@ coef(lmeEng1)
 anova(lmeEng1) # sequential F tests
 
 # If you want p-values
-library(car)
+# library(car)
 Anova(lmeEng1) # a Type-II test
 # Type-II tests are calculated according to the principle of marginality,
 # testing each term after all others, except ignoring the term's higher-order
