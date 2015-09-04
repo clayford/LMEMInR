@@ -354,32 +354,32 @@ By the way, the "4" in `lme4` refers to the technical fact that `lme4` was progr
 Assuming one level of grouping, say repeated measures on subjects.
 
 **Random intercept**:  
-`lme1 <- lmer(dv ~ x1 + (1 | g), data=df)`
+`lme01 <- lmer(dv ~ x1 + (1 | g), data=df)`
 
 **Random slope**:  
-`lme2 <- lmer(dv ~ x1 + (0 + x1 | g), data=df)`
+`lme02 <- lmer(dv ~ x1 + (0 + x1 | g), data=df)`
 
 **Correlated random slope and intercept**:  
-`lme3 <- lmer(dv ~ x1 + (x1 | g), data=df)`
+`lme03 <- lmer(dv ~ x1 + (x1 | g), data=df)`
 
 **Uncorrelated random slope and intercept**:   
-`lme3 <- lmer(dv ~ x1 + (x1 || g), data=df)`
+`lme04 <- lmer(dv ~ x1 + (x1 || g), data=df)`
 
 ## Fitting a model with `lme4`
 
 Assuming two levels of grouping, say students clustered in teachers, and teachers within schools:
 
 **Random intercept**:  
-`lme1 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`
+`lme01 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`
 
 **Random slope**:  
-`lme2 <- lmer(dv ~ x1 + (0 + x1 | sch/tch), data=df)`
+`lme02 <- lmer(dv ~ x1 + (0 + x1 | sch/tch), data=df)`
 
 **Correlated random slope and intercept**:  
-`lme3 <- lmer(dv ~ x1 + (x1 | sch/tch), data=df)`
+`lme03 <- lmer(dv ~ x1 + (x1 | sch/tch), data=df)`
 
 **Uncorrelated random slope and intercept**:   
-`lme3 <- lmer(dv ~ x1 + (x1 || sch/tch), data=df)`
+`lme04 <- lmer(dv ~ x1 + (x1 || sch/tch), data=df)`
 
 ## Selected `lme4` extractor functions
 
@@ -488,7 +488,7 @@ Say we fit the folllowing LMM:
 **To assess normality of residuals**:   
 `qqnorm(resid(lme1))`  
 
-**To asses normality of random effects**:     
+**To assess normality of random effects**:     
 `library(lattice)`   
 `qqmath(ranef(lme1))`
 

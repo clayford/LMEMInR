@@ -163,7 +163,9 @@ Anova(lmm4)
 
 # Diagnostics -------------------------------------------------------------
 
-# Check assumptions of constant variance and normality
+# Two basic assumptions need to be checked:
+# 1. within-group errors are normal, centered at 0, have constant variance
+# 2. random effects are normal, centered at 0, have constant variance
 
 # check constant variance assumption
 # residual vs. fitted values
@@ -204,6 +206,10 @@ qqnorm(ranef(lmm4)[[1]]$weeks) # slope
 # predicted random effects.
 dotplot(ranef(lmm4))
 
+# check model fit
+plot(lmm4, wt ~ fitted(.) | subject, abline = c(0,1))
+
+
 # back to presentation
 
 # Model Comparison --------------------------------------------------------
@@ -215,10 +221,16 @@ anova(lmm1, lmm2)
 # suppress since fixed effects are the same in each model:
 anova(lmm1, lmm2, refit = FALSE)
 
-# p-value is tiny, but let's compute a corrected p-value anyway. In the test we 
-# see that it's on 2 degrees of freedom, but recall the null distribution is not
-# on 2 degrees of freedom but rather a mixture of distributions.
-0.5*pchisq(122.43, 2, lower.tail = FALSE) + 0.5*pchisq(122.43, 1, lower.tail = FALSE)
+# p-value is tiny, but let's compute a corrected p-value anyway. 
+# let's save the output so we can access Chi-square test statistic
+str(anova(lmm1, lmm2, refit = FALSE))
+aout <- na.omit(anova(lmm1, lmm2, refit = FALSE)) # drop NAs
+aout$Chisq
+
+# In the test we see that it's on 2 degrees of freedom, but recall the null
+# distribution is not on 2 degrees of freedom but rather a mixture of
+# distributions.
+0.5*pchisq(aout$Chisq, 2, lower.tail = FALSE) + 0.5*pchisq(aout$Chisq, 1, lower.tail = FALSE)
 
 # even smaller!
 
@@ -227,7 +239,7 @@ pvalMix <- function(stat,df){
   0.5*pchisq(stat, df, lower.tail = FALSE) + 
      0.5*pchisq(stat, df-1, lower.tail = FALSE)
 }
-pvalMix(122.43, 2)
+pvalMix(aout$Chisq, aout$`Chi Df`)
 
 
 # compare model with correlated random effects to model without correlated
@@ -382,7 +394,10 @@ coef(lmeEng2)
 anova(lmeEng2)
 Anova(lmeEng2)
 
-# visual model fit for population
+# check model fit
+plot(lmeEng2, english ~ fitted(.) | class, abline = c(0,1))
+
+# visualoze model fit for population
 plot(allEffects(lmeEng2))
 
 
