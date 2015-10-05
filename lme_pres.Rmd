@@ -43,14 +43,14 @@ We have a new computer-based math curriculum. We carry out an experiment where w
 
 ## Data for Linear Mixed-Effect Models
 
-LMM (**L**inear **M**ixed-Effect **M**odels) are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by *random factors* and the response (or dependent variable) is continuous. 
+LME (**L**inear **M**ixed-**E**ffect Models) are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by *random factors* and the response (or dependent variable) is continuous. 
 
 In our first example, we had longitudinal data grouped by patient (a random factor). The effect of the patient is a random effect. The effect of the treatment is a fixed effect.
 
 In our second example, we had clustered data grouped by schools and teachers within schools (random factors). The effect of the schools and teachers within schools are random effects. The effect of the curriculum is a fixed effect.
 
 ## Data in Long Format
-In R, LMM data need to be in *long* format. That is, we have one record per subject per each measure of the dependent variable. 
+In R, LME data need to be in *long* format. That is, we have one record per subject per each measure of the dependent variable. 
 
 ```{r, echo=FALSE, cache=TRUE, message=FALSE}
 library(lme4)
@@ -115,7 +115,7 @@ $$\boldsymbol{Y_i} = \boldsymbol{X_i\beta} + \boldsymbol{Z_ib_i} + \epsilon_i $$
 $$\boldsymbol{b_i} \sim N(\boldsymbol{0}, \boldsymbol{D})$$ 
 $$\epsilon_i \sim N(\boldsymbol{0}, \boldsymbol{R_i})$$ 
 
-Notice the `i` subscript. Linear mixed-effect models are fit to groups of data, say repeated measures made on subjects. The $\boldsymbol{X_i\beta}$ are the fixed effects. The $\boldsymbol{Z_ib_i}$ are the random effects. The $\epsilon_i$ are the random errors.
+Notice the `i` subscript. Linear mixed-effect models are fit to groups of data, say repeated measures made on subjects. $\boldsymbol{X_i}$ are the predictors. $\boldsymbol{\beta}$ are the fixed effect coefficients. $\boldsymbol{Z_i}$ is a subset of the predictors. $\boldsymbol{b_i}$ are the random effect coefficients. The $\epsilon_i$ are the random errors.
 
 In contrast to a standard linear models, random errors can be correlated.
 
@@ -179,7 +179,7 @@ $$\begin{pmatrix}
 
 This says that residuals associated with observations on the same subject have equal variance and equal covariance. This is used when an assumption of equal correlation of residuals is plausible. Here we have two parameters to estimate: $\sigma^{2}$ and $\sigma_{1}$
 
-There are other covariance structures commonly used for $\boldsymbol{R_i}$, but we won't cover those today.
+There are other covariance structures for $\boldsymbol{R_i}$, but we won't cover those today.
 
 
 ## Simple data for a linear mixed-effect model
@@ -213,7 +213,7 @@ If we were to imagine what kind of mathematical process gave rise to this data, 
 Fit a model with one random effect: the intercept
 
 ```{r, message=FALSE}
-library(lme4) # package for fitting lmm
+library(lme4) # package for fitting lme
 lme1 <- lmer(y ~ x + (1 | g), data = dat)
 fixef(lme1) # fixed effect estimates
 VarCorr(lme1) # D and R estimates
@@ -260,7 +260,7 @@ grid.arrange(p1, p2, nrow=1)
 
 If we were to imagine what kind of mathematical process gave rise to this data, we might propose a straight line model with a *fixed* intercept coefficient but a *random* slope coefficient.
 
-## Fitting a LMM for random slopes
+## Fitting a LME for random slopes
 
 ```{r, message=FALSE}
 # fit random effect for slope but not intercept
@@ -305,7 +305,7 @@ p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="
 grid.arrange(p1, p2, nrow=1)
 ```
 
-## Fitting a LMM for random intercepts and slopes
+## Fitting a LME for random intercepts and slopes
 
 ```{r, message=FALSE}
 # fit random effects for intercepts and slopes 
@@ -329,7 +329,7 @@ ggplot(dat, aes(x,y,color=g)) + geom_point() +
 ```
 
 
-## Packages for fitting LMM
+## Packages for fitting LME
 
 The two most commonly used R packages for fitting linear mixed-effect models are `nlme` and `lme4`.
 
@@ -367,7 +367,7 @@ Assuming one level of grouping, say repeated measures on subjects.
 
 ## Fitting a model with `lme4`
 
-Assuming two levels of grouping, say students clustered in teachers, and teachers within schools:
+Assuming two levels of grouping, say teachers within schools:
 
 **Random intercept**:  
 `lme01 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`
@@ -385,21 +385,21 @@ Assuming two levels of grouping, say students clustered in teachers, and teacher
 
 Once we fit a model, `lme4` has several functions for extracting and viewing model information:
 
-- `summary()` - View summary of fitted LMM 
+- `summary()` - View summary of fitted LME 
 - `fixef()` - View estimated fixed effect coefficients 
 - `ranef()` - View predicted random effects
-- `coef()` - View coefficients for LMM for *each group* 
+- `coef()` - View coefficients for LME for *each group* 
 - `VarCorr()` - View estimated variance parameters
 
 Let's go to R!
 
-## Why no p-values in the LMM summary?
+## Why no p-values in the LME summary?
 
 Recall that p-values in the coefficient summary of fitted model are the probability of getting a test statistic as large (or larger) if the coefficient was indeed 0.
 
 Also recall that p-values are determined using null reference distributions. Under the null hypothesis, the test statistic has a known distribution.
 
-In LMM, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` author elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
+In LME, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` author elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
 
 ## How do I know if a coefficient is "significant"?
 
@@ -450,7 +450,7 @@ To use with, say, a fitted model called `lme1`:
 
 ## Diagnostic plots
 
-Once we fit a LMM, we should assess our assumptions:
+Once we fit a LME, we should assess our assumptions:
 
 1. within-group errors (ie, residuals) are normally distributed, centered at 0 and have constant variance
 
@@ -464,7 +464,7 @@ Where the `form=` argument is an optional formula specifying the desired type of
 
 ## Examples of the `form=` argument
 
-Say we fit the folllowing LMM:   
+Say we fit the folllowing LME:   
 `lme1 <- lmer(y ~ x + (x | id), data=df)`
 
 **standarized residuals vs fitted values**:   
@@ -491,6 +491,9 @@ Say we fit the folllowing LMM:
 **To assess normality of random effects**:     
 `library(lattice)`   
 `qqmath(ranef(lme1))`
+
+**To assess model fit**
+plot(lme1, y ~ fitted(.) | id, abline = c(0,1))
 
 Let's go to R.
 

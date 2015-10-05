@@ -15,18 +15,20 @@ library(car)
 
 # EXAMPLE 1
 
-ratdrink <- read.csv("https://github.com/clayford/LMEMInR/raw/master/ratdrink.csv")
+ratdrink <- read.csv("http://people.virginia.edu/~jcf2d/workshops/LMEinR/ratdrink.csv")
 
-# The data consist of 5 weekly measurements of body weight for 27 rats. The
-# first 10 rats are on a control treatment while 7 rats have thyroxine added to
-# their drinking water. 10 rats have thiouracil added to their water.
-# Source: faraway package (Faraway, 2006)
+# The data consist of 5 weekly measurements of body weight for 27 rats. The 
+# first 10 rats are on a control treatment while 7 rats have thyroxine added to 
+# their drinking water. 10 rats have thiouracil added to their water. We're 
+# interested in how the treatments affect the weight of the rats. Source:
+# faraway package (Faraway, 2006)
 
 str(ratdrink)
 # explore data
-summary(ratdrink)
-table(ratdrink$subject)
-with(ratdrink, table(subject,weeks))
+summary(ratdrink)# unbalanced data
+with(ratdrink, table(subject, treat))
+with(ratdrink, table(subject, weeks))
+
 # summary stats
 aggregate(wt ~ treat, data=ratdrink, mean)
 aggregate(wt ~ weeks + treat, data=ratdrink, mean)
@@ -43,7 +45,10 @@ ggplot(ratdrink, aes(x=weeks, y=wt, group=subject)) +
   geom_point() + geom_line() + facet_wrap(~ treat)
 
 # interaction plot
-with(ratdrink, interaction.plot(x.factor = weeks, trace.factor = treat, response = wt))
+with(ratdrink, 
+     interaction.plot(x.factor = weeks, 
+                      trace.factor = treat, 
+                      response = wt))
 
 # linear mixed-effect model, no interaction between treat and week
 # random intercept
@@ -62,11 +67,13 @@ ranef(lmm1)$subject # predicted random effects for Intercept
 
 # add them to get the intercept column in coef(lmm1)
 fixef(lmm1)[1] + ranef(lmm1)$subject
+# check they're the same
 cbind(coef(lmm1)$subject[,1], fixef(lmm1)[1] + ranef(lmm1)$subject)
 fixef(lmm1)[1] + ranef(lmm1)$subject == coef(lmm1)$subject[,1]
 
 # estimates of variance parameters
 VarCorr(lmm1)
+
 
 # fit random intercept and random slope for weeks;
 lmm2 <- lmer(wt ~ treat + weeks + (weeks | subject), data=ratdrink)
@@ -83,6 +90,8 @@ ranef(lmm2)$subject # predicted random effects
 fixef(lmm2)[1] + ranef(lmm2)$subject[,1] == coef(lmm2)$subject[,1]
 fixef(lmm2)[4] + ranef(lmm2)$subject[,2] == coef(lmm2)$subject[,4]
 
+# estimates of variance parameters
+VarCorr(lmm2)
 
 # fit model with uncorrelated random intercept and slope:
 lmm3 <- lmer(wt ~ treat + weeks + (weeks || subject), data=ratdrink)
@@ -90,6 +99,9 @@ summary(lmm3)
 fixef(lmm3)
 ranef(lmm3)
 coef(lmm3) # fitted model per group
+
+# estimates of variance parameters
+VarCorr(lmm3)
 
 
 # fit model with interaction and random slopes and intercept
@@ -99,14 +111,16 @@ lmm4 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject),
 summary(lmm4)
 fixef(lmm4)
 ranef(lmm4)
+coef(lmm4)
 
 VarCorr(lmm4)
 
 # fit model with interaction and uncorrelated random slopes and intercept
 lmm5 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks || subject), 
              data=ratdrink)
-summary(lmm5)
+summary(lmm5, correlation=FALSE)
 
+# correlation=FALSE suppresses the Correlation of Fixed Effects output.
 
 # Effect Plots ------------------------------------------------------------
 
@@ -115,7 +129,7 @@ summary(lmm5)
 
 # a rather complicated way using ggplot2
 fe <- fixef(lmm4)
-cols <- scales::hue_pal()(3) # get the colors that ggplot generated
+cols <- scales::hue_pal()(3) # get the colors that ggplot generates
 ggplot(ratdrink, aes(x=weeks, y=wt, color=treat)) + geom_point() +
   geom_abline(intercept=fe[1], slope=fe[4], color=cols[1]) +
   geom_abline(intercept=fe[1] + fe[2], slope=fe[4] + fe[5], color=cols[2]) +
@@ -138,28 +152,42 @@ plot(allEffects(lmm4), multiline=TRUE, ci.style = "bands")
 # Assessing Significance --------------------------------------------------
 
 # confidence intervals
+# Let's look at lmm5
+formula(lmm5)
 
 # profile method
-confint(lmm4)
+confint(lmm5)
 # oldNames = FALSE changes the labeling
-confint(lmm4, oldNames = FALSE)
+confint(lmm5, oldNames = FALSE)
 
 # bootstrap method with a progress bar (nsim = 500)
-confint(lmm4, method = "boot", .progress="txt")
+confint(lmm5, method = "boot", .progress="txt", , oldNames = FALSE)
 # add a percent completion indicator
-confint(lmm4, method = "boot", nsim = 200,
-        .progress="txt", PBargs=list(style=3))
+confint(lmm5, method = "boot", nsim = 200,
+        .progress="txt", PBargs=list(style=3),
+        oldNames = FALSE)
+
+# generate approximate p-values
+# install.packages("lmerTest")
+library(lmerTest)
+# Notice it implements a different version of lmer!
+# refit lmm4; call it lmm4a
+lmm5a <- lmer(formula(lmm5), data=ratdrink)
+summary(lmm5a)
+
+# Let's unload the lmerTest package and unmask the original lmer function.
+detach("package:lmerTest", unload=TRUE)
 
 # assessing fixed-effect factors. In this case "treat". It has three levels.
-levels(ratdrink$treat)
 
 # sequential test (Type I), no p-values
-anova(lmm4)
+anova(lmm5)
 
 # test each term after all others (Type II), approx p-values
 # library(car)
-Anova(lmm4)
+Anova(lmm5)
 
+# treat not significant, but interaction is
 
 # Diagnostics -------------------------------------------------------------
 
@@ -169,45 +197,47 @@ Anova(lmm4)
 
 # check constant variance assumption
 # residual vs. fitted values
-plot(lmm4)
+plot(lmm5)
 # same as this:
-plot(resid(lmm4) ~ fitted(lmm4))
+plot(resid(lmm5) ~ fitted(lmm5))
 abline(h=0)
 
 
 # plots of residuals by weeks
-plot(lmm4, form = resid(.) ~ weeks)
+plot(lmm5, form = resid(.) ~ weeks)
 # by weeks and treatment
-plot(lmm4, form = resid(.) ~ weeks | treat)
+plot(lmm5, form = resid(.) ~ weeks | treat)
+# not doing very well with thyroxine in weeks 0 and 1
 
 # residuals by subjects
-plot(lmm4, subject ~ resid(.))
-plot(lmm4, factor(subject) ~ resid(.))
+plot(lmm5, subject ~ resid(.))
+plot(lmm5, factor(subject) ~ resid(.))
+# hopefully we're not systematically under- or over-predicting for subjects
 
 # residuals by treat
-plot(lmm4, treat ~ resid(.))
+plot(lmm5, treat ~ resid(.))
 
 # check normality of residuals
-qqnorm(resid(lmm4))
+qqnorm(resid(lmm5))
 
 # check constant variance of random effects
-plot(ranef(lmm4))
+plot(ranef(lmm5))
 
 # check normality of random effects
 library(lattice)
-qqmath(ranef(lmm4))
+qqmath(ranef(lmm5))
 
 # another way without lattice
-qqnorm(ranef(lmm4)[[1]]$"(Intercept)") # intercept
-qqnorm(ranef(lmm4)[[1]]$weeks) # slope
+qqnorm(ranef(lmm5)[[1]]$"(Intercept)") # intercept
+qqnorm(ranef(lmm5)[[1]]$weeks) # slope
 
 # plot predicted random effects for each level of a grouping factor; allows you 
 # to see if there are levels of a grouping factor with extremely large or small
 # predicted random effects.
-dotplot(ranef(lmm4))
+dotplot(ranef(lmm5))
 
 # check model fit
-plot(lmm4, wt ~ fitted(.) | subject, abline = c(0,1))
+plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
 
 
 # back to presentation
@@ -225,6 +255,7 @@ anova(lmm1, lmm2, refit = FALSE)
 # let's save the output so we can access Chi-square test statistic
 str(anova(lmm1, lmm2, refit = FALSE))
 aout <- na.omit(anova(lmm1, lmm2, refit = FALSE)) # drop NAs
+str(aout)
 aout$Chisq
 
 # In the test we see that it's on 2 degrees of freedom, but recall the null
@@ -252,36 +283,36 @@ pvalMix(0.9721, 1)
 
 
 # let's compare lmm5 with lmm3:
-formula(lmm3)
-formula(lmm5)
+formula(lmm3) # no interaction; no correlation between random effects
+formula(lmm5) # with interaction; no correlation between random effects
 
 anova(lmm3, lmm5)
 # interaction appears significant
 
-plot(lmm5)
-plot(lmm5, treat ~ resid(.))
-plot(ranef(lmm5))
-qqmath(ranef(lmm5))
+# let's compare lmm5 with lmm4:
+formula(lmm5) # with interaction; no correlation between random effects
+formula(lmm4) # with interaction; correlation between random effects
 
-plot(lmm5, resid(.) ~ weeks | treat)
-# thyroxine residuals exhibits a pattern...
-# let's look at data again
-ggplot(ratdrink, aes(x=weeks, y=wt, group=subject)) + 
-  geom_point() + geom_line() + facet_wrap(~ treat)
+anova(lmm4, lmm5)
+# not significant; we prefer lmm5, the simpler model
 
-# visualize; no difference in the fixed effects
-plot(allEffects(lmm5), multiline=TRUE, main="lmm5")
-plot(allEffects(lmm4), multiline=TRUE, main="lmm4")
+formula(lmm5)
 
-VarCorr(lmm4)
-VarCorr(lmm5)
+VarCorr(lmm4) # with correlated random effects
+VarCorr(lmm5) # without correlated random effects
 
+# can also use AIC to compare models (lower is better)
+AIC(lmm1)
+AIC(lmm2)
+# a quick way using sapply and get(); get() gets the object with that name.
+AIC(get("lmm1"))
+sapply(paste0("lmm",1:5), function(x)AIC(get(x)))
 
 
 # EXAMPLE 2
 
 # multilevel model
-jspr <- read.csv("https://github.com/clayford/LMEMInR/raw/master/jspr.csv")
+jspr <- read.csv("http://people.virginia.edu/~jcf2d/workshops/LMEinR/jspr.csv")
 str(jspr)
 # data from primary schools in inner London. Source: Mortimore, P., P. Sammons, 
 # L. Stoll, D. Lewis, and R. Ecob (1988). School Matters. Wells, UK: Open Books.
@@ -319,11 +350,11 @@ with(jspr, table(gender, social))
 with(jspr, table(class, school))
 
 # mean english score per school
-aggregate(english ~ school, data=jsp, mean)
+aggregate(english ~ school, data=jspr, mean)
 # variability between schools
 
 # mean english score per class per school
-mData <- aggregate(english ~ school + class, data=jsp, mean)
+mData <- aggregate(english ~ school + class, data=jspr, mean)
 mData[order(mData$school),]
 # variability between classes within schools
 
