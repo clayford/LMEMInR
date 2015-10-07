@@ -425,28 +425,6 @@ The `lmerTest` package provides the kind of p-values SAS provides (based on Satt
 
 A column of p-values is included in the summary output. Again, they're *approximate*.
 
-## Assessing significance of fixed-effect factors
-
-Fixed-effect factors with more than two levels should be assessed with `anova`, not by examining p-values in the `summary` output (which is easy since there are none in `lme4` summaries).
-
-Say your fitted model object `lme1` contains fixed-effect factors. To assess their significance:
-
-`anova(lme1)`
-
-Two things to note:
-
-1. The tests are *sequential*. (aka, Type I)
-2. No p-values are provided. Same explanation as before.
-
-## But I want p-values!
-
-The `car` package provides a functions called `Anova` that provides approximate p-values and tests each predictor after all others (Type II) as opposed to sequentially (Type I). 
-
-To use with, say, a fitted model called `lme1`:
-
-`library(car)`   
-`Anova(lme1)`
-
 
 ## Diagnostic plots
 
@@ -528,12 +506,34 @@ Say we fit two models:
 `lme1 <- lmer(y ~ x + z + x:z + (1 | g), data=df)`   
 `lme2 <- lmer(y ~ x + z + (1 | g), data=df)`   
 
-The following refits the models with ML and compares them via hypothesis test:   
+The following refits the models with ML and compares them via Likelihood Ratio hypothesis test:   
 `anova(lme1, lme2)`
 
 Notice that `lme2` is nested in `lme1`. That is, `lme2` is a special case of `lme1` with an interaction coefficient for `x:z` equal to 0.
 
 The null hypothesis states the models are equal. Rejecting the null means we prefer the larger model.
+
+## Dropping terms from a model
+
+The `drop1` function will drop all possible single fixed-effect terms. We begin with a model ask, "what would happen if we dropped a term"?
+
+Let's say your model is `y ~ x + r + z + (1|g)`, fitted as object `lme1`.
+
+`drop1(lme1, test="Chisq")` performs a series of Likelihood Ratio hypothesis tests to see how model is affected by individually dropping `x`, dropping `r`, and dropping `z`.
+
+Without specifying `test="Chisq"`, we get a print out of how AIC changes when terms are dropped.
+
+## Model comparison with AIC
+
+AIC (Akaike Information Criterion) is a criterion-based approach to model building. It is a measure of "goodness" we try to optimize. We want to minimize AIC.
+
+To see AIC:   
+`extractAIC(lme1)`    
+
+Among several models, the one with lower AIC is usually preferred. This approach requires _no hypothesis testing_, involves no p-values, and doesn't care whether you used REML or ML. 
+
+Is it better than hypothesis testing? That's up to you. Whatever you do, expect to do some experimentation and iteration to find better models. Also expect to use a great deal of subjective judgment. 
+
 
 ## Comparing models with different random effects
 

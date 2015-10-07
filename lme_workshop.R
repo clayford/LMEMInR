@@ -304,9 +304,7 @@ VarCorr(lmm5) # without correlated random effects
 # can also use AIC to compare models (lower is better)
 AIC(lmm1)
 AIC(lmm2)
-# a quick way using sapply and get(); get() gets the object with that name.
-AIC(get("lmm1"))
-sapply(paste0("lmm",1:5), function(x)AIC(get(x)))
+AIC(lmm1, lmm2, lmm3, lmm4, lmm5)
 
 
 # EXAMPLE 2
