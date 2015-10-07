@@ -52,7 +52,7 @@ with(ratdrink,
 
 # linear mixed-effect model, no interaction between treat and week
 # random intercept
-lmm1 <- lmer(wt ~ weeks + treat + (1 | subject), data=ratdrink)
+lmm1 <- lmer(wt ~ treat + weeks + (1 | subject), data=ratdrink)
 lmm1
 summary(lmm1) # notice: no p-values!
 fixef(lmm1)
@@ -244,6 +244,58 @@ plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
 
 # Model Comparison --------------------------------------------------------
 
+# let's compare lmm5 with lmm3:
+formula(lmm3) # no interaction; no correlation between random effects
+formula(lmm5) # with interaction; no correlation between random effects
+
+anova(lmm3, lmm5)
+# interaction appears significant
+
+# can also use extractAIC to compare models (lower is better)
+extractAIC(lmm3)
+extractAIC(lmm5)
+
+# AIC also works; the calculations are slightly different
+AIC(lmm3, lmm5)
+
+# let's compare lmm5 with lmm4:
+formula(lmm5) # with interaction; no correlation between random effects
+formula(lmm4) # with interaction; correlation between random effects
+
+VarCorr(lmm4) # with correlated random effects
+VarCorr(lmm5) # without correlated random effects
+
+# let's test if the correlation (or covariance) between the two random effects
+# is 0
+anova(lmm4, lmm5)
+# notice models are re-fit with ML
+# the p-value is approximate
+
+# suppress since fixed effects are the same in each model:
+anova(lmm4, lmm5, refit = FALSE)
+
+# Let's compute a corrected p-value. 
+# Save the output so we can access Chi-square test statistic
+str(anova(lmm4, lmm5, refit = FALSE))
+aout <- na.omit(anova(lmm4, lmm5, refit = FALSE)) # drop NAs
+str(aout)
+aout$Chisq
+
+# In the test we see that it's on 1 degree of freedom, but recall the null
+# distribution is not on 1 degree of freedom but rather a mixture of
+# distributions.
+0.5*pchisq(aout$Chisq, 1, lower.tail = FALSE) + 0.5*pchisq(aout$Chisq, 0, lower.tail = FALSE)
+# or this:
+pchisq(aout$Chisq, 1, lower.tail = FALSE)/2
+
+# we can write a function to automate this:
+pvalMix <- function(stat,df){
+  0.5*pchisq(stat, df, lower.tail = FALSE) + 
+    0.5*pchisq(stat, df-1, lower.tail = FALSE)
+}
+pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
+
+
 # do we need a random effect for weeks (ie, a random slope)?
 anova(lmm1, lmm2)
 # notice models are re-fit with ML
@@ -253,24 +305,9 @@ anova(lmm1, lmm2, refit = FALSE)
 
 # p-value is tiny, but let's compute a corrected p-value anyway. 
 # let's save the output so we can access Chi-square test statistic
-str(anova(lmm1, lmm2, refit = FALSE))
 aout <- na.omit(anova(lmm1, lmm2, refit = FALSE)) # drop NAs
-str(aout)
 aout$Chisq
-
-# In the test we see that it's on 2 degrees of freedom, but recall the null
-# distribution is not on 2 degrees of freedom but rather a mixture of
-# distributions.
-0.5*pchisq(aout$Chisq, 2, lower.tail = FALSE) + 0.5*pchisq(aout$Chisq, 1, lower.tail = FALSE)
-
-# even smaller!
-
-# we can write a function to automate this:
-pvalMix <- function(stat,df){
-  0.5*pchisq(stat, df, lower.tail = FALSE) + 
-     0.5*pchisq(stat, df-1, lower.tail = FALSE)
-}
-pvalMix(aout$Chisq, aout$`Chi Df`)
+pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
 
 
 # compare model with correlated random effects to model without correlated
@@ -281,30 +318,6 @@ pvalMix(0.9721, 1)
 # still not significant; prefer lmm3, simpler model with no correlation between 
 # random intercept and slope.
 
-
-# let's compare lmm5 with lmm3:
-formula(lmm3) # no interaction; no correlation between random effects
-formula(lmm5) # with interaction; no correlation between random effects
-
-anova(lmm3, lmm5)
-# interaction appears significant
-
-# let's compare lmm5 with lmm4:
-formula(lmm5) # with interaction; no correlation between random effects
-formula(lmm4) # with interaction; correlation between random effects
-
-anova(lmm4, lmm5)
-# not significant; we prefer lmm5, the simpler model
-
-formula(lmm5)
-
-VarCorr(lmm4) # with correlated random effects
-VarCorr(lmm5) # without correlated random effects
-
-# can also use AIC to compare models (lower is better)
-AIC(lmm1)
-AIC(lmm2)
-AIC(lmm1, lmm2, lmm3, lmm4, lmm5)
 
 
 # EXAMPLE 2

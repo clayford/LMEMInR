@@ -18,11 +18,10 @@ To teach you...
 
 A linear model with both *fixed* and *random* effects. Hence, the phrase "*Mixed-Effect*".
 
-**Fixed effects** are population parameters we seek to estimate. These are regression coefficients for *repeatable* variables (eg: Gender, Age, Treatment, Race, etc.)
+**Fixed effects** are parameters for a population. These are regression coefficients for *repeatable* variables. (eg: Gender, Age, Treatment, Race, etc.) If we repeat the analysis on new data, the *repeatable* variables would be collected or used again.
 
-**Random effects** are random values associated with levels of a random factor. We want to understand their variability, not estimate them. These are for *non-repeatable* variables (eg: subjects, teachers, schools, plots of land, etc.)
+**Random effects** are associated with individual units drawn at random from a population. (eg: subjects, teachers, schools, plots of land, etc.) We can think of these units as *non-repeatable* levels of factors. If we repeat the analysis on new data, we would not use the same individual units.
 
-If we repeat the analysis on new data, the *repeatable* variables would be collected or used again, the *non-repeatable* variables would not.
 
 ## Example
 
@@ -49,22 +48,14 @@ In our first example, we had longitudinal data grouped by patient (a random fact
 
 In our second example, we had clustered data grouped by schools and teachers within schools (random factors). The effect of the schools and teachers within schools are random effects. The effect of the curriculum is a fixed effect.
 
-## Data in Long Format
-In R, LME data need to be in *long* format. That is, we have one record per subject per each measure of the dependent variable. 
-
-```{r, echo=FALSE, cache=TRUE, message=FALSE}
-library(lme4)
-head(sleepstudy)
-```
-
-The dependent variable is `Reaction`. Notice we have one record per subject per each measure of `Reaction`. Here, `Subject` is the random effect.
-
 ## Specification of a Linear Model
 
 Let's review the specification for a basic linear model:
 
 $$\boldsymbol{Y} = \boldsymbol{X\beta} + \epsilon  $$
 $$\epsilon \sim N(0, \sigma)$$ 
+
+where $\boldsymbol{X\beta} = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_k X_k$.
 
 This says our dependent variable ($\boldsymbol{Y}$) is equal to our independent variables ($\boldsymbol{X}$) multiplied by coefficients ($\boldsymbol{\beta}$) and added up, plus some random error ($\epsilon$) that comes from a Normal distribution with mean 0 and standard deviation $\sigma$.
 
@@ -140,7 +131,7 @@ $$\begin{pmatrix}
  \sigma_{b1,b2} & \sigma_{b2}^{2}
 \end{pmatrix}$$
 
-In this matrix there are three parameters to estimate: $\sigma_{b1}^{2}$, $\sigma_{b2}^{2}$, and $\sigma_{b1,b2}$. This structure assumes the two random effects have covariance, ie, they vary together. *This is the default in R.* 
+In this matrix there are three parameters to estimate: $\sigma_{b1}^{2}$, $\sigma_{b2}^{2}$, and $\sigma_{b1,b2}$. This structure assumes the two random effects have covariance, ie, they vary together. *This is the default in R when you have two random effects.* 
 
 ## Example of another $\boldsymbol{D}$ matrix structure
 
@@ -195,7 +186,7 @@ b <- b0[g]
 y <- 0.5 + b + 1.5*x + eps
 dat <- data.frame(g, x, y, b, eps)
 p1 <- ggplot(dat, aes(x,y)) + geom_point() + labs(title="with no grouping indicated")
-p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="with grouping indicated")
+p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line(alpha=1/3) + labs(title="with grouping indicated")
 grid.arrange(p1, p2, nrow=1)
 ```
 
@@ -248,7 +239,7 @@ b <- b1[g]
 y <- 0.5 + (1.5 + b)*x + eps
 dat <- data.frame(g, x, y, b, eps)
 p1 <- ggplot(dat, aes(x,y)) + geom_point() + labs(title="with no grouping indicated")
-p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="with grouping indicated")
+p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line(alpha=1/3) + labs(title="with grouping indicated")
 grid.arrange(p1, p2, nrow=1) 
 ```
 
@@ -301,7 +292,7 @@ b1 <- b1[g]
 y <- (0.5 + b0) + (1.5 + b1)*x + eps
 dat <- data.frame(g, x, y, eps)
 p1 <- ggplot(dat, aes(x,y)) + geom_point() + labs(title="with no grouping indicated")
-p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line() + labs(title="with grouping indicated")
+p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line(alpha=1/3) + labs(title="with grouping indicated")
 grid.arrange(p1, p2, nrow=1)
 ```
 
@@ -348,6 +339,16 @@ The syntax is a little easier to learn and it seems to be the go-to package in t
 It's worth repeating: `lme4` does not currently provide facilities for modeling different variance-covariance structures for residuals, $\boldsymbol{R_i}$. Residual errors are assumed to be Normally distributed with mean 0 and variance $\sigma^2$. 
 
 By the way, the "4" in `lme4` refers to the technical fact that `lme4` was programmed using the S4 system in R.
+
+## Data in Long Format
+In R, LME data need to be in *long* format. That is, we have one record per subject per each measure of the dependent variable. 
+
+```{r, echo=FALSE, cache=TRUE, message=FALSE}
+library(lme4)
+head(sleepstudy)
+```
+
+The dependent variable is `Reaction`. Notice we have one record per subject per each measure of `Reaction`. Here, `Subject` is the random effect.
 
 ## Fitting a model with `lme4`
 
@@ -515,7 +516,7 @@ The null hypothesis states the models are equal. Rejecting the null means we pre
 
 ## Dropping terms from a model
 
-The `drop1` function will drop all possible single fixed-effect terms. We begin with a model ask, "what would happen if we dropped a term"?
+The `drop1` function will drop all possible single fixed-effect terms. We begin with a model and ask, "what would happen if we dropped a term"?
 
 Let's say your model is `y ~ x + r + z + (1|g)`, fitted as object `lme1`.
 
