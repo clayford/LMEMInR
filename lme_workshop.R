@@ -55,7 +55,7 @@ with(ratdrink,
 lmm1 <- lmer(wt ~ treat + weeks + (1 | subject), data=ratdrink)
 lmm1
 summary(lmm1) # notice: no p-values!
-fixef(lmm1)
+fixef(lmm1) # aka Best Linear Unbiased Predictions (BLUPs)
 ranef(lmm1)
 coef(lmm1) # fitted model per group
 
@@ -118,36 +118,11 @@ VarCorr(lmm4)
 # fit model with interaction and uncorrelated random slopes and intercept
 lmm5 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks || subject), 
              data=ratdrink)
-summary(lmm5, correlation=FALSE)
+summary(lmm5, corr=FALSE)
 
-# correlation=FALSE suppresses the Correlation of Fixed Effects output.
-
-# Effect Plots ------------------------------------------------------------
-
-# plot fitted model for lmm4: correlated random intercept and slope with
-# interaction betweem weeks and treat:
-
-# a rather complicated way using ggplot2
-fe <- fixef(lmm4)
-cols <- scales::hue_pal()(3) # get the colors that ggplot generates
-ggplot(ratdrink, aes(x=weeks, y=wt, color=treat)) + geom_point() +
-  geom_abline(intercept=fe[1], slope=fe[4], color=cols[1]) +
-  geom_abline(intercept=fe[1] + fe[2], slope=fe[4] + fe[5], color=cols[2]) +
-  geom_abline(intercept=fe[1] + fe[3], slope=fe[4] + fe[6], color=cols[3])
-
-# an easier way using the effects package
-# library(effects)
-plot(allEffects(lmm4))
-# combined into one plot
-plot(allEffects(lmm4), multiline=TRUE)
-# combined into one plot with confidence bands
-plot(allEffects(lmm4), multiline=TRUE, ci.style = "bands")
-# see ?allEffects and ?plot.eff for more options and examples
-
+# corr=FALSE suppresses the Correlation of Fixed Effects output.
 
 # back to presentation
-
-
 
 # Assessing Significance --------------------------------------------------
 
@@ -238,6 +213,39 @@ dotplot(ranef(lmm5))
 
 # check model fit
 plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
+
+# Effect Plots ------------------------------------------------------------
+
+# The effects package allows you to create graphical and tabular effect
+# displays for statistical models.
+
+# Let's look at first model
+formula(lmm1)
+
+# Typical usage
+allEffects(lmm1) # see effects at given levels
+plot(allEffects(lmm1)) # plot effects
+
+# The Effect function can be used to vary a subset of predictors over their ranges, while
+# other predictors are held to typical values.
+
+# examine effect of treat at weeks 0 and 4
+eout <- Effect(focal.predictors = c("treat","weeks"), mod = lmm1,
+               xlevels = list(weeks=c(0,4)))
+plot(eout)
+
+# plot fitted model for lmm4: correlated random intercept and slope with
+# interaction betweem weeks and treat:
+formula(lmm4)
+
+# a quick plot of all effects
+plot(allEffects(lmm4))
+
+# combined into one plot
+plot(allEffects(lmm4), multiline=TRUE)
+
+# combined into one plot with confidence bands
+plot(allEffects(lmm4), multiline=TRUE, ci.style = "bands")
 
 
 # back to presentation

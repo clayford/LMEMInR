@@ -352,7 +352,7 @@ The dependent variable is `Reaction`. Notice we have one record per subject per 
 
 ## Fitting a model with `lme4`
 
-Assuming one level of grouping, say repeated measures on subjects.
+Assuming one predictor and one level of grouping, say repeated measures on subjects.
 
 **Random intercept**:  
 `lme01 <- lmer(dv ~ x1 + (1 | g), data=df)`
@@ -366,9 +366,11 @@ Assuming one level of grouping, say repeated measures on subjects.
 **Uncorrelated random slope and intercept**:   
 `lme04 <- lmer(dv ~ x1 + (x1 || g), data=df)`
 
+Of course we can have multiple predictors and random effects.
+
 ## Fitting a model with `lme4`
 
-Assuming two levels of grouping, say teachers within schools:
+Assuming one predictor and two levels of grouping, say teachers within schools:
 
 **Random intercept**:  
 `lme01 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`
@@ -381,6 +383,9 @@ Assuming two levels of grouping, say teachers within schools:
 
 **Uncorrelated random slope and intercept**:   
 `lme04 <- lmer(dv ~ x1 + (x1 || sch/tch), data=df)`
+
+Again we can have multiple predictors and random effects.
+
 
 ## Selected `lme4` extractor functions
 
@@ -441,6 +446,7 @@ Once we fit a LME, we should assess our assumptions:
 
 Where the `form=` argument is an optional formula specifying the desired type of plot.
 
+
 ## Examples of the `form=` argument
 
 Say we fit the folllowing LME:   
@@ -462,7 +468,8 @@ Say we fit the folllowing LME:
 ## Diagnostic plots continued
 
 **To check constant variance of random effects**:   
-`plot(ranef(lme1))`
+`plot(ranef(lme1))`   
+_Note: if only one random effect was fit, this produces a qq plot._   
 
 **To assess normality of residuals**:   
 `qqnorm(resid(lme1))`  
@@ -471,10 +478,29 @@ Say we fit the folllowing LME:
 `library(lattice)`   
 `qqmath(ranef(lme1))`
 
-**To assess model fit**
-plot(lme1, y ~ fitted(.) | id, abline = c(0,1))
+**To assess model fit**    
+`plot(lme1, y ~ fitted(.) | id, abline = c(0,1))`
 
-Let's go to R.
+## Effect plots
+
+The `effects` package provides convenient functions for graphically displaying statistical models. 
+
+Say you have a model object called `lme1`. Basic usage would be:
+
+`library(effects)`   
+`plot(allEffects(lme))`
+
+This produces a plot of effects over "pretty" levels of your predictors.
+
+The `effects` package is quite powerful. See `?allEffect` for many examples of visualizing several kinds of statistical models.
+
+## Effects plot example
+
+```{r, echo=FALSE}
+library(effects)
+plot(allEffects(lme3))
+```
+
 
 ## REML vs. ML
 
