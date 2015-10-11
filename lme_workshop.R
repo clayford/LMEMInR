@@ -43,6 +43,9 @@ ggplot(ratdrink, aes(x=weeks, y=wt, color=treat, group=subject)) +
 # with faceting
 ggplot(ratdrink, aes(x=weeks, y=wt, group=subject)) + 
   geom_point() + geom_line() + facet_wrap(~ treat)
+# boxplots by week
+ggplot(ratdrink, aes(x=treat,y=wt)) + geom_boxplot() + facet_wrap(~weeks)
+
 
 # interaction plot
 with(ratdrink, 
@@ -55,21 +58,24 @@ with(ratdrink,
 lmm1 <- lmer(wt ~ treat + weeks + (1 | subject), data=ratdrink)
 lmm1
 summary(lmm1) # notice: no p-values!
-fixef(lmm1) # aka Best Linear Unbiased Predictions (BLUPs)
-ranef(lmm1)
+summary(lmm1, corr=FALSE) # supress "Correlation of Fixed Effects"
+
+# What are Correlation of Fixed Effects?
+# see explanation from lme4 author:
+# https://stat.ethz.ch/pipermail/r-sig-mixed-models/2009q1/001941.html
+
+fixef(lmm1) 
+ranef(lmm1) # aka Best Linear Unbiased Predictions (BLUPs)
 coef(lmm1) # fitted model per group
 
 # Notice the (Intercept) column is the sum of the fixed intercept and random
 # intercept:
-
 fixef(lmm1)[1] # fixed effect estimate of Intercept
-ranef(lmm1)$subject # predicted random effects for Intercept
+ranef(lmm1)$subject[1,] # predicted random effect for subject 1 Intercept
 
 # add them to get the intercept column in coef(lmm1)
-fixef(lmm1)[1] + ranef(lmm1)$subject
-# check they're the same
-cbind(coef(lmm1)$subject[,1], fixef(lmm1)[1] + ranef(lmm1)$subject)
-fixef(lmm1)[1] + ranef(lmm1)$subject == coef(lmm1)$subject[,1]
+fixef(lmm1)[1] + ranef(lmm1)$subject[1,]
+coef(lmm1)$subject[1,] # coefficients for subject 1
 
 # estimates of variance parameters
 VarCorr(lmm1)
@@ -77,7 +83,7 @@ VarCorr(lmm1)
 
 # fit random intercept and random slope for weeks;
 lmm2 <- lmer(wt ~ treat + weeks + (weeks | subject), data=ratdrink)
-summary(lmm2)
+summary(lmm2, corr=F)
 fixef(lmm2)
 ranef(lmm2)
 coef(lmm2) # fitted model per group
@@ -86,16 +92,18 @@ coef(lmm2) # fitted model per group
 # Again notice the intercepts and slopes are the sum of the random effects and
 # the fixed Intercept and slope estimates:
 fixef(lmm2)[c(1,4)] # fixed effect estimates
-ranef(lmm2)$subject # predicted random effects
-fixef(lmm2)[1] + ranef(lmm2)$subject[,1] == coef(lmm2)$subject[,1]
-fixef(lmm2)[4] + ranef(lmm2)$subject[,2] == coef(lmm2)$subject[,4]
+ranef(lmm2)$subject[1,] # predicted random effects for subject 1
+
+# add them to get the intercept and slope columns in coef(lmm2)
+fixef(lmm2)[c(1,4)] + ranef(lmm2)$subject[1,]
+coef(lmm2)$subject[1,] # coefficients for subject 1
 
 # estimates of variance parameters
 VarCorr(lmm2)
 
 # fit model with uncorrelated random intercept and slope:
 lmm3 <- lmer(wt ~ treat + weeks + (weeks || subject), data=ratdrink)
-summary(lmm3)
+summary(lmm3, corr=F)
 fixef(lmm3)
 ranef(lmm3)
 coef(lmm3) # fitted model per group
@@ -108,7 +116,7 @@ VarCorr(lmm3)
 lmm4 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject), 
              data=ratdrink)
 # or lmm4 <- lmer(wt ~ treat * weeks + (weeks | subject), data=ratdrink)
-summary(lmm4)
+summary(lmm4, corr=F)
 fixef(lmm4)
 ranef(lmm4)
 coef(lmm4)
@@ -119,8 +127,6 @@ VarCorr(lmm4)
 lmm5 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks || subject), 
              data=ratdrink)
 summary(lmm5, corr=FALSE)
-
-# corr=FALSE suppresses the Correlation of Fixed Effects output.
 
 # back to presentation
 
@@ -136,7 +142,7 @@ confint(lmm5)
 confint(lmm5, oldNames = FALSE)
 
 # bootstrap method with a progress bar (nsim = 500)
-confint(lmm5, method = "boot", .progress="txt", , oldNames = FALSE)
+confint(lmm5, method = "boot", .progress="txt",oldNames = FALSE)
 # add a percent completion indicator
 confint(lmm5, method = "boot", nsim = 200,
         .progress="txt", PBargs=list(style=3),
@@ -155,14 +161,17 @@ detach("package:lmerTest", unload=TRUE)
 
 # assessing fixed-effect factors. In this case "treat". It has three levels.
 
-# sequential test (Type I), no p-values
+# sequential test (Type I), no p-values; order of terms in model matters
 anova(lmm5)
 
-# test each term after all others (Type II), approx p-values
+# test each term after all others (Type II), approx p-values; 
+# order of terms in model does not matter
 # library(car)
 Anova(lmm5)
 
 # treat not significant, but interaction is
+
+# back to presentation
 
 # Diagnostics -------------------------------------------------------------
 
@@ -185,7 +194,7 @@ plot(lmm5, form = resid(.) ~ weeks | treat)
 # not doing very well with thyroxine in weeks 0 and 1
 
 # residuals by subjects
-plot(lmm5, subject ~ resid(.))
+plot(lmm5, subject ~ resid(.)) # oops...need to declare subject a factor
 plot(lmm5, factor(subject) ~ resid(.))
 # hopefully we're not systematically under- or over-predicting for subjects
 
@@ -199,17 +208,14 @@ qqnorm(resid(lmm5))
 plot(ranef(lmm5))
 
 # check normality of random effects
-library(lattice)
-qqmath(ranef(lmm5))
+# library(lattice)
+lattice::qqmath(ranef(lmm5))
 
-# another way without lattice
-qqnorm(ranef(lmm5)[[1]]$"(Intercept)") # intercept
-qqnorm(ranef(lmm5)[[1]]$weeks) # slope
 
 # plot predicted random effects for each level of a grouping factor; allows you 
 # to see if there are levels of a grouping factor with extremely large or small
 # predicted random effects.
-dotplot(ranef(lmm5))
+lattice::dotplot(ranef(lmm5))
 
 # check model fit
 plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
@@ -247,6 +253,41 @@ plot(allEffects(lmm4), multiline=TRUE)
 # combined into one plot with confidence bands
 plot(allEffects(lmm4), multiline=TRUE, ci.style = "bands")
 
+
+
+# Model Predictions -------------------------------------------------------
+
+# predicted values, including random effects
+# same as fitted(lmm5)
+predict(lmm5)
+
+# compare to original values for subjects 1 & 2
+cbind(ratdrink$wt[1:10], predict(lmm5)[1:10])
+
+# predicted values, NOT including random effects
+# also known as marginal predictions
+predict(lmm5, re.form=NA)
+
+# compare to original values for subjects 1 & 2
+cbind(ratdrink$wt[1:10], predict(lmm5, re.form=NA)[1:10])
+# NOTE: same for both subjects (both have same treatment: control)
+
+# make predictions for new data
+# new data needs to be in a data frame with same names as original data
+
+# predict weight at 2.5 weeks for all treatments:
+nd <- data.frame(treat=levels(ratdrink$treat), weeks=2.5)
+predict(lmm5, newdata=nd, re.form=NA)
+
+# predict weight at weeks 3, 4, and 5 for thiouracil
+nd <- data.frame(treat="thiouracil", weeks=c(3,4,5))
+predict(lmm5, newdata=nd, re.form=NA)
+
+# using bootMer
+myPredictions <- function(x){
+  predict(x, newdata=nd, re.form=NA)
+}
+bootMer(lmm5, myPredictions, nsim = 100)
 
 # back to presentation
 

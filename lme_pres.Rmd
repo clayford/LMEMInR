@@ -18,14 +18,14 @@ To teach you...
 
 A linear model with both *fixed* and *random* effects. Hence, the phrase "*Mixed-Effect*".
 
-**Fixed effects** are parameters for a population. These are regression coefficients for *repeatable* variables. (eg: Gender, Age, Treatment, Race, etc.) If we repeat the analysis on new data, the *repeatable* variables would be collected or used again.
+**Fixed effects** are parameters for a population. These are regression coefficients for *repeatable* variables. (eg: Gender, Age, Treatment, Race, etc.) If we repeat the analysis or experiment on new data, the *repeatable* variables would be collected or used again.
 
-**Random effects** are associated with individual units drawn at random from a population. (eg: subjects, teachers, schools, plots of land, etc.) We can think of these units as *non-repeatable* levels of factors. If we repeat the analysis on new data, we would not use the same individual units.
+**Random effects** are associated with individual units drawn at random from a population. (eg: subjects, teachers, schools, plots of land, etc.) We can think of these units as *non-repeatable* levels of factors. If we repeat the analysis or experiment on new data, we would not use the same individual units.
 
 
 ## Example
 
-We have a new treatment for a disease. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every two weeks for two months to gauge efficacy. 
+We have a new medical treatment. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every two weeks for two months to gauge efficacy. 
 
 - The Fixed Effect is Treatment. If we were to replicate this study, we would use this variable again.  
 
@@ -55,7 +55,7 @@ Let's review the specification for a basic linear model:
 $$\boldsymbol{Y} = \boldsymbol{X\beta} + \epsilon  $$
 $$\epsilon \sim N(0, \sigma)$$ 
 
-where $\boldsymbol{X\beta} = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_k X_k$.
+where $\boldsymbol{X\beta} = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + ... + \beta_k X_{ki}$.
 
 This says our dependent variable ($\boldsymbol{Y}$) is equal to our independent variables ($\boldsymbol{X}$) multiplied by coefficients ($\boldsymbol{\beta}$) and added up, plus some random error ($\epsilon$) that comes from a Normal distribution with mean 0 and standard deviation $\sigma$.
 
@@ -106,7 +106,7 @@ $$\boldsymbol{Y_i} = \boldsymbol{X_i\beta} + \boldsymbol{Z_ib_i} + \epsilon_i $$
 $$\boldsymbol{b_i} \sim N(\boldsymbol{0}, \boldsymbol{D})$$ 
 $$\epsilon_i \sim N(\boldsymbol{0}, \boldsymbol{R_i})$$ 
 
-Notice the `i` subscript. Linear mixed-effect models are fit to groups of data, say repeated measures made on subjects. $\boldsymbol{X_i}$ are the predictors. $\boldsymbol{\beta}$ are the fixed effect coefficients. $\boldsymbol{Z_i}$ is a subset of the predictors. $\boldsymbol{b_i}$ are the random effect coefficients. The $\epsilon_i$ are the random errors.
+Notice the `i` subscript. Linear mixed-effect models are fit to groups of data, say repeated measures made on subjects. $\boldsymbol{X_i}$ are the predictors. $\boldsymbol{\beta}$ are the fixed effect coefficients. $\boldsymbol{Z_i}$ is a subset of the predictors. $\boldsymbol{b_i}$ are the random effect _predictions_. The $\epsilon_i$ are the random errors.
 
 In contrast to a standard linear models, random errors can be correlated.
 
@@ -328,13 +328,13 @@ The two most commonly used R packages for fitting linear mixed-effect models are
 
 - **`lme4`**: newer package, does not come with R; can fit linear, generalized linear, and nonlinear mixed-effect models; can also fit models with *crossed random effects*; does not currently allow fitting various covariance structures for residual errors.
 
-`lme4` also uses different computations than `nlme`. The math is far beyond the scope of this workshop but suffice to say it makes lme4 better for larger data.
+`lme4` also uses different computations than `nlme` that makes it better for larger data.
 
 ## `lme4`
 
 For today's workshop we'll use `lme4`. 
 
-The syntax is a little easier to learn and it seems to be the go-to package in the R community for linear mixed-effect modeling. 
+The syntax is a little easier to learn than `nlme`. 
 
 It's worth repeating: `lme4` does not currently provide facilities for modeling different variance-covariance structures for residuals, $\boldsymbol{R_i}$. Residual errors are assumed to be Normally distributed with mean 0 and variance $\sigma^2$. 
 
@@ -405,7 +405,7 @@ Recall that p-values in the coefficient summary of fitted model are the probabil
 
 Also recall that p-values are determined using null reference distributions. Under the null hypothesis, the test statistic has a known distribution.
 
-In LME, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` author elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
+In LME, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` authors elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
 
 ## How do I know if a coefficient is "significant"?
 
@@ -431,6 +431,7 @@ The `lmerTest` package provides the kind of p-values SAS provides (based on Satt
 
 A column of p-values is included in the summary output. Again, they're *approximate*.
 
+Let's go back to R!
 
 ## Diagnostic plots
 
@@ -475,11 +476,19 @@ _Note: if only one random effect was fit, this produces a qq plot._
 `qqnorm(resid(lme1))`  
 
 **To assess normality of random effects**:     
-`library(lattice)`   
-`qqmath(ranef(lme1))`
+`lattice::qqmath(ranef(lme1))`    
+
+## Two other plots of interest
+
+**plot predicted random effects for each level of a grouping factor**    
+`lattice::dotplot(ranef(lme1))`   
+
+Also known as a catepillar plot. Good for checking if there are levels of a grouping factor with extremely large or small predicted random effects.
 
 **To assess model fit**    
 `plot(lme1, y ~ fitted(.) | id, abline = c(0,1))`
+
+Points lying on a diagonal line can provide indication of a good model fit.
 
 ## Effect plots
 
@@ -498,9 +507,22 @@ The `effects` package is quite powerful. See `?allEffect` for many examples of v
 
 ```{r, echo=FALSE}
 library(effects)
-plot(allEffects(lme3))
+plot(allEffects(lme3), main="Effect plot of model fit on slide 26")
 ```
 
+## Making predictions using model
+
+The predict function allows you to make predictions with and without random effects.
+
+**with random effects**      
+`predict(lme1)`
+
+**without random effects; also known as marginal predictions**     
+`predict(lme1, re.form=NA)`
+
+From the lme4 documentation for predict: "_There is no option for computing standard errors of predictions because it is difficult to define an efficient method that incorporates uncertainty in the variance parameters._"
+
+Let's go back to R!
 
 ## REML vs. ML
 
