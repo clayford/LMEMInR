@@ -133,18 +133,26 @@ summary(lmm5, corr=FALSE)
 # Assessing Significance --------------------------------------------------
 
 # confidence intervals
-# Let's look at lmm5
-formula(lmm5)
+# Let's look at lmm1
+formula(lmm1)
 
-# profile method
-confint(lmm5)
+# profile method for all parameters
+confint(lmm1)
 # oldNames = FALSE changes the labeling
-confint(lmm5, oldNames = FALSE)
+confint(lmm1, oldNames = FALSE)
+
+# specify weeks parameters
+confint(lmm1, parm = "weeks")
+# only fixed effects
+confint(lmm1, parm = "beta_")
+# only variance parameters
+confint(lmm1, parm = "theta_", oldNames = FALSE)
+
 
 # bootstrap method with a progress bar (nsim = 500)
-confint(lmm5, method = "boot", .progress="txt",oldNames = FALSE)
+confint(lmm1, method = "boot", .progress="txt",oldNames = FALSE)
 # add a percent completion indicator
-confint(lmm5, method = "boot", nsim = 200,
+confint(lmm1, method = "boot", nsim = 200,
         .progress="txt", PBargs=list(style=3),
         oldNames = FALSE)
 

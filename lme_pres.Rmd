@@ -20,7 +20,7 @@ A linear model with both *fixed* and *random* effects. Hence, the phrase "*Mixed
 
 **Fixed effects** are parameters for a population. These are regression coefficients for *repeatable* variables. (eg: Gender, Age, Treatment, Race, etc.) If we repeat the analysis or experiment on new data, the *repeatable* variables would be collected or used again.
 
-**Random effects** are associated with individual units drawn at random from a population. (eg: subjects, teachers, schools, plots of land, etc.) We can think of these units as *non-repeatable* levels of factors. If we repeat the analysis or experiment on new data, we would not use the same individual units.
+**Random effects** are associated with individual units drawn at random from a population. (eg: subjects, teachers, schools, plots of land, etc.) We might think of these units as *non-repeatable* levels of factors. If we repeat the analysis or experiment on new data, we would not use the same individual units.
 
 
 ## Example
@@ -110,6 +110,12 @@ Notice the `i` subscript. Linear mixed-effect models are fit to groups of data, 
 
 In contrast to a standard linear models, random errors can be correlated.
 
+## Fixed effects vs Random effects in LME
+
+Fixed effects are _regression coefficients_. They describe the relationship between our response and predictors. They are assumed to be unknown fixed quantities that we try to estimate.
+
+Random effects are _random values_ associated with the levels of a random factor. They usually represent random deviations from the relationships described by fixed effects. We're more interested in their variation than their actual values. 
+
 ## Random effects and errors
 
 In a standard linear model we just have to estimate one random error parameter: $\sigma$   
@@ -117,6 +123,8 @@ In a standard linear model we just have to estimate one random error parameter: 
 In a linear mixed-effect model we have two *matrices* of error structures:   
 - one for the random effects: $\boldsymbol{D}$   
 - one for the random errors: $\boldsymbol{R_i}$
+
+$\boldsymbol{D}$ is sometimes referred to as _between-groups_ variation while $\boldsymbol{R_i}$ is called _within-groups_ variation
 
 These matrices can take on different *structures*. 
 
