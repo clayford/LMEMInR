@@ -3,13 +3,11 @@
 # Linear Mixed-Effect Modeling with R
 # Fall 2015
 
-# pkgs <- c("lme4","ggplot2", "effects", "car")
+# pkgs <- c("lme4","ggplot2")
 # install.packages(pkgs)
 
 library(lme4)
 library(ggplot2)
-library(effects)
-library(car)
 
 # Fitting Models using lmer() ---------------------------------------------
 
@@ -30,16 +28,15 @@ with(ratdrink, table(subject, treat))
 with(ratdrink, table(subject, weeks))
 
 # summary stats
-aggregate(wt ~ treat, data=ratdrink, mean)
 aggregate(wt ~ weeks + treat, data=ratdrink, mean)
-aggregate(wt ~ treat, data=ratdrink, sd)
 
 # exploratory plots
-# wt versus weeks with dots colored by treat
-ggplot(ratdrink, aes(x=weeks, y=wt, color=treat)) + geom_point()
-# with groups
+# scatterplot
+ggplot(ratdrink, aes(x=weeks, y=wt)) + geom_point()
+# wt versus weeks with dots colored by treat and with grouping
 ggplot(ratdrink, aes(x=weeks, y=wt, color=treat, group=subject)) + 
   geom_point() + geom_line()
+
 # with faceting
 ggplot(ratdrink, aes(x=weeks, y=wt, group=subject)) + 
   geom_point() + geom_line() + facet_wrap(~ treat)
@@ -53,7 +50,8 @@ with(ratdrink,
                       trace.factor = treat, 
                       response = wt))
 
-# linear mixed-effect model, no interaction between treat and week
+# linear mixed-effect model #1
+# no interaction between treat and week
 # random intercept
 lmm1 <- lmer(wt ~ treat + weeks + (1 | subject), data=ratdrink)
 lmm1
@@ -65,6 +63,10 @@ summary(lmm1, corr=FALSE) # supress "Correlation of Fixed Effects"
 # https://stat.ethz.ch/pipermail/r-sig-mixed-models/2009q1/001941.html
 
 fixef(lmm1) 
+
+# Control is baseline. "treatthiouracil -13.9600" means rats on thiouracil are
+# about 13 grams lighter than rats on control.
+
 ranef(lmm1) # aka Best Linear Unbiased Predictions (BLUPs)
 coef(lmm1) # fitted model per group
 
@@ -101,18 +103,20 @@ coef(lmm2)$subject[1,] # coefficients for subject 1
 # estimates of variance parameters
 VarCorr(lmm2)
 
+# Corr estimated to be -0.326. Suggests the slope and intercept random effects
+# may not be independent. Perhaps a higher intercept means a lower trajectory?
+
 # fit model with uncorrelated random intercept and slope:
 lmm3 <- lmer(wt ~ treat + weeks + (weeks || subject), data=ratdrink)
 summary(lmm3, corr=F)
-fixef(lmm3)
-ranef(lmm3)
-coef(lmm3) # fitted model per group
 
 # estimates of variance parameters
 VarCorr(lmm3)
 
 
-# fit model with interaction and random slopes and intercept
+# fit model with interaction;
+# implies different treatments lead to different slopes
+# include random slopes and intercept
 lmm4 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject), 
              data=ratdrink)
 # or lmm4 <- lmer(wt ~ treat * weeks + (weeks | subject), data=ratdrink)
@@ -122,6 +126,15 @@ ranef(lmm4)
 coef(lmm4)
 
 VarCorr(lmm4)
+
+# Interpreting interaction:
+# The intercept and weeks coefficients are the fitted line for the control group.
+
+# Intercept + treatthiouracil is the intercept for the thiouracil group.
+# weeks + treatthiouracil:weeks is the slope for the thiouracil group.
+
+# treatthiouracil:weeks = -9.37 means the trajectory for thiouracil is lower
+# than the control group.
 
 # fit model with interaction and uncorrelated random slopes and intercept
 lmm5 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks || subject), 
@@ -148,9 +161,12 @@ confint(lmm1, parm = "beta_")
 # only variance parameters
 confint(lmm1, parm = "theta_", oldNames = FALSE)
 
-
 # bootstrap method with a progress bar (nsim = 500)
-confint(lmm1, method = "boot", .progress="txt",oldNames = FALSE)
+confint(lmm1, method = "boot")
+
+# bootstrap method with a progress bar
+confint(lmm1, method = "boot", nsim = 200,
+        .progress="txt",oldNames = FALSE)
 # add a percent completion indicator
 confint(lmm1, method = "boot", nsim = 200,
         .progress="txt", PBargs=list(style=3),
@@ -160,26 +176,14 @@ confint(lmm1, method = "boot", nsim = 200,
 # install.packages("lmerTest")
 library(lmerTest)
 # Notice it implements a different version of lmer!
-# refit lmm4; call it lmm4a
-lmm5a <- lmer(formula(lmm5), data=ratdrink)
-summary(lmm5a)
+# refit lmm1; call it lmm1a
+lmm1a <- lmer(formula(lmm1), data=ratdrink)
+summary(lmm1a)
 
 # Let's unload the lmerTest package and unmask the original lmer function.
 detach("package:lmerTest", unload=TRUE)
+rm(lmm1a)
 
-# assessing fixed-effect factors. In this case "treat". It has three levels.
-
-# sequential test (Type I), no p-values; order of terms in model matters
-anova(lmm5)
-
-# test each term after all others (Type II), approx p-values; 
-# order of terms in model does not matter
-# library(car)
-Anova(lmm5)
-
-# treat not significant, but interaction is
-
-# back to presentation
 
 # Diagnostics -------------------------------------------------------------
 
@@ -190,10 +194,6 @@ Anova(lmm5)
 # check constant variance assumption
 # residual vs. fitted values
 plot(lmm5)
-# same as this:
-plot(resid(lmm5) ~ fitted(lmm5))
-abline(h=0)
-
 
 # plots of residuals by weeks
 plot(lmm5, form = resid(.) ~ weeks)
@@ -206,9 +206,6 @@ plot(lmm5, subject ~ resid(.)) # oops...need to declare subject a factor
 plot(lmm5, factor(subject) ~ resid(.))
 # hopefully we're not systematically under- or over-predicting for subjects
 
-# residuals by treat
-plot(lmm5, treat ~ resid(.))
-
 # check normality of residuals
 qqnorm(resid(lmm5))
 
@@ -218,7 +215,9 @@ plot(ranef(lmm5))
 # check normality of random effects
 # library(lattice)
 lattice::qqmath(ranef(lmm5))
+# These hopefully follow a positive 45 degree line
 
+# Catepillar plot
 
 # plot predicted random effects for each level of a grouping factor; allows you 
 # to see if there are levels of a grouping factor with extremely large or small
@@ -227,39 +226,6 @@ lattice::dotplot(ranef(lmm5))
 
 # check model fit
 plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
-
-# Effect Plots ------------------------------------------------------------
-
-# The effects package allows you to create graphical and tabular effect
-# displays for statistical models.
-
-# Let's look at first model
-formula(lmm1)
-
-# Typical usage
-allEffects(lmm1) # see effects at given levels
-plot(allEffects(lmm1)) # plot effects
-
-# The Effect function can be used to vary a subset of predictors over their ranges, while
-# other predictors are held to typical values.
-
-# examine effect of treat at weeks 0 and 4
-eout <- Effect(focal.predictors = c("treat","weeks"), mod = lmm1,
-               xlevels = list(weeks=c(0,4)))
-plot(eout)
-
-# plot fitted model for lmm4: correlated random intercept and slope with
-# interaction betweem weeks and treat:
-formula(lmm4)
-
-# a quick plot of all effects
-plot(allEffects(lmm4))
-
-# combined into one plot
-plot(allEffects(lmm4), multiline=TRUE)
-
-# combined into one plot with confidence bands
-plot(allEffects(lmm4), multiline=TRUE, ci.style = "bands")
 
 
 
@@ -272,8 +238,8 @@ predict(lmm5)
 # compare to original values for subjects 1 & 2
 cbind(ratdrink$wt[1:10], predict(lmm5)[1:10])
 
-# predicted values, NOT including random effects
-# also known as marginal predictions
+# predicted values, NOT including random effects;
+# also known as marginal predictions or population fitted values
 predict(lmm5, re.form=NA)
 
 # compare to original values for subjects 1 & 2
@@ -285,35 +251,31 @@ cbind(ratdrink$wt[1:10], predict(lmm5, re.form=NA)[1:10])
 
 # predict weight at 2.5 weeks for all treatments:
 nd <- data.frame(treat=levels(ratdrink$treat), weeks=2.5)
+nd
 predict(lmm5, newdata=nd, re.form=NA)
 
 # predict weight at weeks 3, 4, and 5 for thiouracil
 nd <- data.frame(treat="thiouracil", weeks=c(3,4,5))
+nd
 predict(lmm5, newdata=nd, re.form=NA)
-
-# using bootMer
-myPredictions <- function(x){
-  predict(x, newdata=nd, re.form=NA)
-}
-bootMer(lmm5, myPredictions, nsim = 100)
 
 # back to presentation
 
 # Model Comparison --------------------------------------------------------
 
-# let's compare lmm5 with lmm3:
-formula(lmm3) # no interaction; no correlation between random effects
-formula(lmm5) # with interaction; no correlation between random effects
+# let's compare lmm2 with lmm4:
+formula(lmm2) # no interaction
+formula(lmm4) # with interaction
 
-anova(lmm3, lmm5)
+anova(lmm2, lmm4)
 # interaction appears significant
 
 # can also use extractAIC to compare models (lower is better)
-extractAIC(lmm3)
-extractAIC(lmm5)
+extractAIC(lmm2)
+extractAIC(lmm4)
 
 # AIC also works; the calculations are slightly different
-AIC(lmm3, lmm5)
+AIC(lmm2, lmm4)
 
 # let's compare lmm5 with lmm4:
 formula(lmm5) # with interaction; no correlation between random effects
@@ -352,32 +314,11 @@ pvalMix <- function(stat,df){
 }
 pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
 
-
-# do we need a random effect for weeks (ie, a random slope)?
-anova(lmm1, lmm2)
-# notice models are re-fit with ML
-
-# suppress since fixed effects are the same in each model:
-anova(lmm1, lmm2, refit = FALSE)
-
-# p-value is tiny, but let's compute a corrected p-value anyway. 
-# let's save the output so we can access Chi-square test statistic
-aout <- na.omit(anova(lmm1, lmm2, refit = FALSE)) # drop NAs
-aout$Chisq
-pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
-
-
-# compare model with correlated random effects to model without correlated
-# random effects:
-anova(lmm2, lmm3)
-# let's compute corrected p-value
-pvalMix(0.9721, 1)
-# still not significant; prefer lmm3, simpler model with no correlation between 
-# random intercept and slope.
+# Result: fail to reject; appears safe to assume the random effects are independent
 
 
 
-# EXAMPLE 2
+# time permitting example 2 (with nested random effects) ------------------
 
 # multilevel model
 jspr <- read.csv("http://people.virginia.edu/~jcf2d/workshops/LMEinR/jspr.csv")

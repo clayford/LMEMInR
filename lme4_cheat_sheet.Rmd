@@ -136,6 +136,17 @@ The following refits the models with ML and compares them via hypothesis test:
 To supress refitting with ML (only do this if both models have same fixed effects):
 `anova(lme1, lme2, refit = FALSE)`
 
+## Dropping terms from a model
+
+The `drop1` function will drop all possible single fixed-effect terms. We begin with a model and ask, "what would happen if we dropped a term"?
+
+Let's say your model is `y ~ x + r + z + (1|g)`, fitted as object `lme1`.
+
+`drop1(lme1, test="Chisq")` performs a series of Likelihood Ratio hypothesis tests to see how model is affected by individually dropping `x`, dropping `r`, and dropping `z`.
+
+Without specifying `test="Chisq"`, we get a print out of how AIC changes when terms are dropped.
+
+
 ## Comparing models with different random effects
 
 The typical test is whether or not a random effect is necessary. This means testing if the variance of a random effect is 0. But variances are positive and 0 is at the boundary of the range of possible values. The result is that the standard hypothesis test (ie, a likelihood ratio test) is *conservative*. The p-value is too high. If you have a small p-value (say < 0.001), that's not a problem. If you have a p-value close to significance, (say about 0.10) you may want to consider calculating a corrected p-value using a *mixture of chi-square distributions*.

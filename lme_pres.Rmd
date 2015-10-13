@@ -5,48 +5,58 @@ date: "Fall 2015"
 output: beamer_presentation
 ---
 
-## Workshop Goals
-
-To teach you...
-
-- what linear mixed-effect models are
-- when to use linear mixed-effect models
-- how to implement in R
-- how to interpret the output
 
 ## What is a Linear Mixed-Effect Model?
 
-A linear model with both *fixed* and *random* effects. Hence, the phrase "*Mixed-Effect*".
+A linear statistical model with both *fixed* and *random* effects. Non-formal definitions of fixed and random effects:
 
-**Fixed effects** are parameters for a population. These are regression coefficients for *repeatable* variables. (eg: Gender, Age, Treatment, Race, etc.) If we repeat the analysis or experiment on new data, the *repeatable* variables would be collected or used again.
+**Fixed effects** are the things you usually put in a regression model, such as gender, age, treatment, race, temperature, grade level, income, SAT score, etc, etc. We want to understand how they affect our dependent variable. _They produce regression coeffficients._
 
-**Random effects** are associated with individual units drawn at random from a population. (eg: subjects, teachers, schools, plots of land, etc.) We might think of these units as *non-repeatable* levels of factors. If we repeat the analysis or experiment on new data, we would not use the same individual units.
+**Random effects** are things that affect fixed effects. Examples include individuals, teachers, schools, rats, plots of land, etc. We want to understand how their variation affects our fixed effects. _They produce estimates of variance, not regression coefficients._
+
+## More formal definitions
+
+Fixed effects are parameters associated with an entire population or with certain repeatable levels of experimental factors.
+
+Random effects are associated with individual experimental units drawn at random from a population. 
+
+> Pinheiro and Bates (2000)
+
+## I don't like your definitions
+
+Google "fixed vs random effects". You'll find many different explanations. There is no consensus on how to define them.
+
+On top of that linear mixed-effect models are also called "hierarchical linear models", "multilevel models", or "longitudinal models", with different terms and notation!
+
+Mix in advanced statistics and a trying to learn a statistical software package, and you have something that can take some getting used to.
+
+Today the goal is to get your started with basic linear mixed-effect modeling in the context of `R`.
 
 
-## Example
+## Candidate for linear mixed-effect modeling
 
 We have a new medical treatment. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every two weeks for two months to gauge efficacy. 
 
 - The Fixed Effect is Treatment. If we were to replicate this study, we would use this variable again.  
 
-- The Random Effect is Patient. If we were to replicate this study, we would not use the same patients again. Most importantly, *the response data is grouped by patient*.  
+- The Random Effect is Patient. *Notice the response data is grouped by patient*. If we were to replicate this study, we would not use the same patients again.   
 
-## Another example
+## Another candidate for linear mixed-effect modeling
 
 We have a new computer-based math curriculum. We carry out an experiment where we randomly prescribe either the new curriculum or current curriculum to teachers in various schools and measure change in student pre- and post-test scores. 
 
-- The Fixed Effect is Curriculum. If we were to replicate this study, we would use this variable again.  
+- The Fixed Effect is Curriculum. If we were to replicate this study, we would use this variable again. Other fixed effects might also include gender and race.  
 
-- The Random Effects are Teachers and Schools. If we were to replicate this study, we would not necessarily use the same teachers and schools again. Most importantly, *the response data is grouped by schools and teachers within schools*.
+- The Random Effects are Teachers and Schools. *Notice the response data is grouped by schools and teachers within schools*. If we were to replicate this study, we would not necessarily use the same teachers and schools again.
 
 
 ## Data for Linear Mixed-Effect Models
 
-LME (**L**inear **M**ixed-**E**ffect Models) are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by *random factors* and the response (or dependent variable) is continuous. 
+LME (**L**inear **M**ixed-**E**ffect) models are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by _random levels, out of a huge population of possible levels,_ and the dependent variable is continuous. 
 
-In our first example, we had longitudinal data grouped by patient (a random factor). The effect of the patient is a random effect. The effect of the treatment is a fixed effect.
+In our first example, we had longitudinal data grouped by patient, with multiple observations on the same patient. The effect of the patient is a random effect. The effect of the treatment is a fixed effect.
 
-In our second example, we had clustered data grouped by schools and teachers within schools (random factors). The effect of the schools and teachers within schools are random effects. The effect of the curriculum is a fixed effect.
+In our second example, we had clustered data grouped by schools and teachers within schools. The effect of the schools and teachers within schools are random effects. The effect of the curriculum is a fixed effect.
 
 ## Specification of a Linear Model
 
@@ -109,12 +119,6 @@ $$\epsilon_i \sim N(\boldsymbol{0}, \boldsymbol{R_i})$$
 Notice the `i` subscript. Linear mixed-effect models are fit to groups of data, say repeated measures made on subjects. $\boldsymbol{X_i}$ are the predictors. $\boldsymbol{\beta}$ are the fixed effect coefficients. $\boldsymbol{Z_i}$ is a subset of the predictors. $\boldsymbol{b_i}$ are the random effect _predictions_. The $\epsilon_i$ are the random errors.
 
 In contrast to a standard linear models, random errors can be correlated.
-
-## Fixed effects vs Random effects in LME
-
-Fixed effects are _regression coefficients_. They describe the relationship between our response and predictors. They are assumed to be unknown fixed quantities that we try to estimate.
-
-Random effects are _random values_ associated with the levels of a random factor. They usually represent random deviations from the relationships described by fixed effects. We're more interested in their variation than their actual values. 
 
 ## Random effects and errors
 
@@ -209,7 +213,7 @@ If we were to imagine what kind of mathematical process gave rise to this data, 
 
 ## Fitting a linear mixed-effect model in R
 
-Fit a model with one random effect: the intercept
+Fit a model with a "random" intercept
 
 ```{r, message=FALSE}
 library(lme4) # package for fitting lme
@@ -257,12 +261,11 @@ grid.arrange(p1, p2, nrow=1)
 - The different groups seem to have *different slopes*
 - Each group of data appears as if it could be modeled by a straight line model
 
-If we were to imagine what kind of mathematical process gave rise to this data, we might propose a straight line model with a *fixed* intercept coefficient but a *random* slope coefficient.
+If we were to imagine what kind of mathematical process gave rise to this data, we might propose a straight line model with a *fixed* intercept coefficient but a *random* slope.
 
-## Fitting a LME for random slopes
+## Fit a LME model for a random slope
 
 ```{r, message=FALSE}
-# fit random effect for slope but not intercept
 lme2 <- lmer(y ~ x + (0 + x | g), data = dat)
 fixef(lme2) # fixed effect estimates
 VarCorr(lme2) # D and R estimates
@@ -304,13 +307,12 @@ p2 <- ggplot(dat, aes(x,y, color=g)) + geom_point() + geom_line(alpha=1/3) + lab
 grid.arrange(p1, p2, nrow=1)
 ```
 
-## Fitting a LME for random intercepts and slopes
+## Fit LME model for random intercept and slope
 
 ```{r, message=FALSE}
-# fit random effects for intercepts and slopes 
 lme3 <- lmer(y ~ x + (x | g), data = dat)
-fixef(lme3) # fixed effect estimates
-VarCorr(lme3) # D and R estimates
+fixef(lme3) 
+VarCorr(lme3) 
 ```
 
 ## Visualizing the fit
@@ -334,9 +336,7 @@ The two most commonly used R packages for fitting linear mixed-effect models are
 
 - **`nlme`**: older package, comes with R, very stable; can fit linear and non-linear mixed-effect models; allows fitting of various covariance structures for random effects and residual errors.
 
-- **`lme4`**: newer package, does not come with R; can fit linear, generalized linear, and nonlinear mixed-effect models; can also fit models with *crossed random effects*; does not currently allow fitting various covariance structures for residual errors.
-
-`lme4` also uses different computations than `nlme` that makes it better for larger data.
+- **`lme4`**: newer package, does not come with R; can fit linear, generalized linear, and nonlinear mixed-effect models; can also fit models with *crossed random effects*; does not currently allow fitting various covariance structures for residual errors; uses different computations than `nlme` that makes it better for larger data.
 
 ## `lme4`
 
@@ -413,7 +413,7 @@ Recall that p-values in the coefficient summary of fitted model are the probabil
 
 Also recall that p-values are determined using null reference distributions. Under the null hypothesis, the test statistic has a known distribution.
 
-In LME, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` authors elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
+In LME models, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` authors elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
 
 ## How do I know if a coefficient is "significant"?
 
@@ -498,25 +498,7 @@ Also known as a catepillar plot. Good for checking if there are levels of a grou
 
 Points lying on a diagonal line can provide indication of a good model fit.
 
-## Effect plots
-
-The `effects` package provides convenient functions for graphically displaying statistical models. 
-
-Say you have a model object called `lme1`. Basic usage would be:
-
-`library(effects)`   
-`plot(allEffects(lme))`
-
-This produces a plot of effects over "pretty" levels of your predictors.
-
-The `effects` package is quite powerful. See `?allEffect` for many examples of visualizing several kinds of statistical models.
-
-## Effects plot example
-
-```{r, echo=FALSE}
-library(effects)
-plot(allEffects(lme3), main="Effect plot of model fit on slide 26")
-```
+Let's go back to R!
 
 ## Making predictions using model
 
@@ -569,16 +551,6 @@ The following refits the models with ML and compares them via Likelihood Ratio h
 Notice that `lme2` is nested in `lme1`. That is, `lme2` is a special case of `lme1` with an interaction coefficient for `x:z` equal to 0.
 
 The null hypothesis states the models are equal. Rejecting the null means we prefer the larger model.
-
-## Dropping terms from a model
-
-The `drop1` function will drop all possible single fixed-effect terms. We begin with a model and ask, "what would happen if we dropped a term"?
-
-Let's say your model is `y ~ x + r + z + (1|g)`, fitted as object `lme1`.
-
-`drop1(lme1, test="Chisq")` performs a series of Likelihood Ratio hypothesis tests to see how model is affected by individually dropping `x`, dropping `r`, and dropping `z`.
-
-Without specifying `test="Chisq"`, we get a print out of how AIC changes when terms are dropped.
 
 ## Model comparison with AIC
 
