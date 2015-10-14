@@ -470,9 +470,6 @@ Say we fit the folllowing LME:
 **box-plots of residuals by id**:    
 `plot(lme1, form = id ~ resid(.))`
 
-**observed versus fitted values by id**:   
-`plot(lme1, y ~ fitted(.) | id)`
-
 
 ## Diagnostic plots continued
 

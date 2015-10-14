@@ -13,7 +13,11 @@ library(ggplot2)
 
 # EXAMPLE 1
 
-ratdrink <- read.csv("http://people.virginia.edu/~jcf2d/workshops/LMEinR/ratdrink.csv")
+URL <- "http://people.virginia.edu/~jcf2d/workshops/LMEinR/ratdrink.csv"
+ratdrink <- read.csv(URL)
+
+# if URL not available and ratdrink.csv in working directory:
+# ratdrink <- read.csv("ratdrink.csv")
 
 # The data consist of 5 weekly measurements of body weight for 27 rats. The 
 # first 10 rats are on a control treatment while 7 rats have thyroxine added to 
@@ -321,20 +325,25 @@ pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
 # time permitting example 2 (with nested random effects) ------------------
 
 # multilevel model
-jspr <- read.csv("http://people.virginia.edu/~jcf2d/workshops/LMEinR/jspr.csv")
+
+URL <- "http://people.virginia.edu/~jcf2d/workshops/LMEinR/jspr.csv"
+jspr <- read.csv(URL)
 str(jspr)
 # data from primary schools in inner London. Source: Mortimore, P., P. Sammons, 
 # L. Stoll, D. Lewis, and R. Ecob (1988). School Matters. Wells, UK: Open Books.
 
-# We have measures of students within classes within schools.
-# Up to 4 classes with a school
-# response variable is english, an english test score.
+# We have measures of students within classes, which are within schools.
+# Up to 4 classes within a school;
+# response variable is english: an english test score.
+# raven = score on Raven's test, designed to measure reasoning ability
 
-# social is class of the father: I=1; II=2; III nonmanual=3; III manual=4; IV=5;
-# V=6; Long-term unemployed=7; Not currently employed=8; Father absent=9
+# social is class of the father (ordinal scale): 
+# Nonmanual: 1, 2, 3
+# Manual: 4, 5, 6
+# Long-term unemployed=7; Not currently employed=8; Father absent=9
 
-# want to model English as a function of gender, social class and Raven's test
-# score from first year.
+# want to model English score as a function of gender, social class and Raven's
+# test score. Data is grouped by school, and class within school
 
 # set school, class and social as factors:
 jspr$school <- factor(jspr$school)
@@ -343,7 +352,7 @@ jspr$social <- factor(jspr$social)
 
 # explore the data
 
-# how manu schools?
+# how many schools?
 length(unique(jspr$school))
 
 # break down of boy/girl
@@ -351,6 +360,7 @@ table(jspr$gender)
 
 # break down of social
 table(jspr$social)
+barplot(table(jspr$social)) # most kids from working class homes
 
 # break down of gender and social
 with(jspr, table(gender, social))
@@ -358,24 +368,26 @@ with(jspr, table(gender, social))
 # how many students in each class in each school
 with(jspr, table(class, school))
 
-# mean english score per school
-aggregate(english ~ school, data=jspr, mean)
-# variability between schools
-
-# mean english score per class per school
-mData <- aggregate(english ~ school + class, data=jspr, mean)
-mData[order(mData$school),]
-# variability between classes within schools
-
+# english scores by gender and social
 aggregate(english ~ gender, data=jspr, mean)
+aggregate(english ~ social, data=jspr, mean)
 aggregate(english ~ gender + social, data=jspr, mean)
 
-# some visual exploration
-ggplot(jspr, aes(x=gender, y=english)) + geom_boxplot()
-ggplot(jspr, aes(x=gender, y=english)) + geom_boxplot() + facet_wrap(~school)
 
-ggplot(jspr, aes(x=social, y=english)) + geom_boxplot()
-ggplot(jspr, aes(x=social, y=english)) + geom_boxplot() + facet_wrap(~gender)
+# some visual exploration
+
+
+# visualize variability of mean english score between schools
+# also notice variability within schools
+ggplot(jspr, aes(x=school,y=english)) + geom_point(alpha=1/3) + 
+  stat_summary(fun.y="mean", geom="point", color="red", size=4) +
+  geom_hline(yintercept=mean(jspr$english))
+
+# visualize variability of mean english score between classes within schools
+ggplot(jspr, aes(x=class,y=english)) + geom_point(alpha=1/3) + 
+  stat_summary(fun.y="mean", geom="point", color="red", size=4) +
+  facet_wrap(~ school)
+
 
 ggplot(jspr, aes(x=raven, y=english)) + geom_point()
 ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter())
@@ -391,61 +403,81 @@ ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
 
 # with grouping
 ggplot(jspr, aes(x=raven, y=english)) + geom_point() + facet_wrap(~school)
-ggplot(jspr, aes(x=raven, y=english)) + geom_point() + geom_smooth(method="lm", se=F) +
+ggplot(jspr, aes(x=raven, y=english, color=gender)) + geom_point() + geom_smooth(method="lm", se=F) +
   facet_wrap(~school)
+ggplot(jspr, aes(x=raven, y=english, color=gender)) + geom_point() + geom_smooth(method="lm", se=F) +
+  facet_wrap(~social)
+
 # random slope for raven?
+# gender and raven interact?
+# social and raven interact?
 
-# interaction plot
-with(jspr, interaction.plot(x.factor = social,trace.factor = gender,response = english))
+# fit models
 
-
-lmeEng0 <- lmer(english ~ 1 + (1 | school), data=jspr)
-summary(lmeEng0)
-lmeEng0a <- lmer(english ~ 1 + (1 | school/class), data=jspr)
-summary(lmeEng0a)
-
-anova(lmeEng0, lmeEng0a, refit=FALSE)
-# looks like we should keep the class within school random effect
-
-lmeEng1 <- lmer(english ~ raven + gender*social + (1 | school/class), data=jspr)
-summary(lmeEng1)
-print(summary(lmeEng1),corr=FALSE) # without the correlation matrix of fixed-effect coefficients.
+# random intercept with raven + gender + social
+lmeEng1 <- lmer(english ~ raven + gender + social + (1 | school/class), data=jspr)
+summary(lmeEng1, corr=FALSE)
 VarCorr(lmeEng1)
 fixef(lmeEng1)
 ranef(lmeEng1)
+
+# models for schools, and classes within schools
 coef(lmeEng1)
-anova(lmeEng1) # sequential F tests
 
-# If you want p-values
-# library(car)
-Anova(lmeEng1) # a Type-II test
-# Type-II tests are calculated according to the principle of marginality,
-# testing each term after all others, except ignoring the term's higher-order
-# relatives;
-
-
-# remove interaction for gender and social
-lmeEng2 <- lmer(english ~ raven + gender + social + (1 | school/class), data=jspr)
-print(summary(lmeEng2), corr=FALSE)
+# add interaction for gender and raven
+lmeEng2 <- lmer(english ~ raven*gender + social + (1 | school/class), data=jspr)
+summary(lmeEng2, corr=FALSE)
 VarCorr(lmeEng2)
-fixef(lmeEng2)
-ranef(lmeEng2)
-coef(lmeEng2)
-anova(lmeEng2)
-Anova(lmeEng2)
+
+# compare models
+anova(lmeEng1, lmeEng2)
+# appears interaction is not warranted
+
+# does social help explain variability in english score
+lmeEng3 <- lmer(english ~ raven + gender + (1 | school/class), data=jspr)
+summary(lmeEng3, corr=FALSE)
+
+# compare models
+anova(lmeEng1, lmeEng3)
+# it seems we should keep social
+
+# random slope for raven?
+lmeEng4 <- lmer(english ~ raven + gender + social + (raven | school/class), data=jspr)
+summary(lmeEng4, corr=FALSE)
+VarCorr(lmeEng4)
+# perfect correlation?
+
+# try fitting random slope for raven just at school level
+lmeEng5 <- lmer(english ~ raven + gender + social + (raven | school) + (1 | school:class), 
+                data=jspr)
+summary(lmeEng5, corr=FALSE)
+VarCorr(lmeEng5)
+
+
+anova(lmeEng4, lmeEng5, refit=FALSE)
+# with correction
+aout <- na.omit(anova(lmeEng4, lmeEng5, refit=FALSE))
+pvalMix(aout$Chisq, df=aout$`Chi Df`)
+
+# do we even need a random intercept for raven?
+aout <- na.omit(anova(lmeEng1,lmeEng4, refit=FALSE))
+pvalMix(aout$Chisq, df=aout$`Chi Df`)
+# probably OK to do without
+
 
 # check model fit
-plot(lmeEng2, english ~ fitted(.) | class, abline = c(0,1))
+plot(lmeEng1, english ~ fitted(.) | school, abline = c(0,1))
+# not great
 
-# visualoze model fit for population
-plot(allEffects(lmeEng2))
+# some diagnostics
+plot(lmeEng1)
+plot(lmeEng1, form = school ~ resid(.))
 
+# normality check
+qqnorm(resid(lmeEng1)) # residuals
+plot(ranef(lmeEng1)) # random effects
 
-lmeEng3 <- lmer(english ~ raven + gender + social + (raven | school/class), data=jspr)
-anova(lmeEng2, lmeEng3, refit=FALSE)
-# corrected p-value
-pvalMix(8.0432, df=4)
-# looks like we could safely do without a random effect for raven
-
-
+# are there levels of a grouping factor with extremely large or small predicted
+# random effects?
+lattice::dotplot(ranef(lmeEng1))
 
