@@ -381,7 +381,8 @@ Of course we can have multiple predictors and random effects.
 Assuming one predictor and two levels of grouping, say teachers within schools:
 
 **Random intercept**:  
-`lme01 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`
+`lme01 <- lmer(dv ~ x1 + (1 | sch/tch), data=df)`    
+**Or:** `lme01 <- lmer(dv ~ x1 + (1 | sch) + (1 | sch:tch), data=df)`    
 
 **Random slope**:  
 `lme02 <- lmer(dv ~ x1 + (0 + x1 | sch/tch), data=df)`
@@ -415,9 +416,21 @@ Also recall that p-values are determined using null reference distributions. Und
 
 In LME models, the null reference distribution is technically not known, at least not for unbalanced data. Thus the `lme4` authors elected to not output p-values based on a distribution that is not actually the distribution of the test statistic.
 
+
 ## How do I know if a coefficient is "significant"?
 
-One way is to compute 95% confidence intervals using the `confint()` function. If the interval contains 0, it is not significant. Further, confidence intervals give an indication of coefficient size and variability.
+Quick, common-sense way: look at the `t value`.
+
+If the `t value` is greater than 2, then the coefficient is likely significant.
+
+Note:    
+`t value` = `Estimate` / `Std. Error`
+
+Of course ask yourself if the result is practically significant as well.
+
+## How do I know if a coefficient is "significant"?
+
+Another way is to compute 95% confidence intervals using the `confint()` function. If the interval contains 0, it is not significant. Further, confidence intervals give an indication of coefficient size and variability.
 
 Say your fitted model object is `lme1`. Two ways to compute confidence intervals are as follows:
 
@@ -545,7 +558,7 @@ Say we fit two models:
 The following refits the models with ML and compares them via Likelihood Ratio hypothesis test:   
 `anova(lme1, lme2)`
 
-Notice that `lme2` is nested in `lme1`. That is, `lme2` is a special case of `lme1` with an interaction coefficient for `x:z` equal to 0.
+Notice that `lme2` is nested in `lme1`. That is, `lme2` is a special case of `lme1` with interaction coefficient(s) for `x:z` equal to 0.
 
 The null hypothesis states the models are equal. Rejecting the null means we prefer the larger model.
 

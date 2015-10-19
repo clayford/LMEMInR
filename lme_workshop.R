@@ -328,7 +328,12 @@ pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
 
 URL <- "http://people.virginia.edu/~jcf2d/workshops/LMEinR/jspr.csv"
 jspr <- read.csv(URL)
+
+# if URL not available and jspr.csv in working directory:
+# jspr <- read.csv("jspr.csv")
+
 str(jspr)
+# Junior School Project
 # data from primary schools in inner London. Source: Mortimore, P., P. Sammons, 
 # L. Stoll, D. Lewis, and R. Ecob (1988). School Matters. Wells, UK: Open Books.
 
