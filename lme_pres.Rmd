@@ -10,9 +10,9 @@ output: beamer_presentation
 
 A linear statistical model with both *fixed* and *random* effects. Non-formal definitions of fixed and random effects:
 
-**Fixed effects** are the things you usually put in a regression model, such as gender, age, treatment, race, temperature, grade level, income, SAT score, etc, etc. We want to understand how they affect our dependent variable. _They produce regression coeffficients._
+**Fixed effects** are the things you usually put in a regression model, such as gender, age, treatment, race, temperature, grade level, income, SAT score, etc, etc. We want to understand how they affect our dependent variable. _They produce regression coefficients._
 
-**Random effects** are things that affect fixed effects. Examples include individuals, teachers, schools, rats, plots of land, etc. We want to understand how their variation affects our fixed effects. _They produce estimates of variance, not regression coefficients._
+**Random effects** are things that affect fixed effects. Examples include individuals, teachers, schools, rats, patients, plots of land, etc. We want to understand how their variation affects our fixed effects. _They produce estimates of variance, not regression coefficients._
 
 ## More formal definitions
 
@@ -35,7 +35,7 @@ Today the goal is to get your started with basic linear mixed-effect modeling in
 
 ## Candidate for linear mixed-effect modeling
 
-We have a new medical treatment. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every two weeks for two months to gauge efficacy. 
+We have a new medical treatment. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every week for two months to gauge efficacy. 
 
 - The Fixed Effect is Treatment. If we were to replicate this study, we would use this variable again.  
 
@@ -143,7 +143,7 @@ $$\begin{pmatrix}
  \sigma_{b1,b2} & \sigma_{b2}^{2}
 \end{pmatrix}$$
 
-In this matrix there are three parameters to estimate: $\sigma_{b1}^{2}$, $\sigma_{b2}^{2}$, and $\sigma_{b1,b2}$. This structure assumes the two random effects have covariance, ie, they vary together. *This is the default in R when you have two random effects.* 
+In this matrix there are three parameters to estimate: $\sigma_{b1}^{2}$, $\sigma_{b2}^{2}$, and $\sigma_{b1,b2}$. This structure assumes the two random effects have covariance, ie, they vary together. *This is the default in R when you specify that two predictors have random effects.* 
 
 ## Example of another $\boldsymbol{D}$ matrix structure
 
@@ -408,9 +408,9 @@ Once we fit a model, `lme4` has several functions for extracting and viewing mod
 
 Let's go to R!
 
-## Why no p-values in the LME summary?
+## Why no p-values in the `lme4` summaries?
 
-Recall that p-values in the coefficient summary of fitted model are the probability of getting a test statistic as large (or larger) if the coefficient was indeed 0.
+Recall that p-values in the coefficient summary of fitted linear models are the probability of getting a test statistic as large (or larger) if the coefficient was indeed 0.
 
 Also recall that p-values are determined using null reference distributions. Under the null hypothesis, the test statistic has a known distribution.
 
@@ -421,7 +421,7 @@ In LME models, the null reference distribution is technically not known, at leas
 
 Quick, common-sense way: look at the `t value`.
 
-If the `t value` is greater than 2, then the coefficient is likely significant.
+If the `t value` is greater than 2, then the coefficient is likely significant. In other words, the coefficient estimate is more than 2 standard errors away from 0.
 
 Note:    
 `t value` = `Estimate` / `Std. Error`
@@ -526,7 +526,7 @@ Let's go back to R!
 
 ## REML vs. ML
 
-If you look closely at the summary output for a model fit with lme4, you'll see the message: `Linear mixed model fit by REML`.
+If you look closely at the summary output for a model fit with `lme4`, you'll see the message: `Linear mixed model fit by REML`.
 
 REML stands for Restricted Maximum-Likelihood Estimation. It provides unbiased estimates for the variance parameters. 
 

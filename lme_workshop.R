@@ -28,11 +28,15 @@ ratdrink <- read.csv(URL)
 str(ratdrink)
 # explore data
 summary(ratdrink)# unbalanced data
-with(ratdrink, table(subject, treat))
-with(ratdrink, table(subject, weeks))
 
 # summary stats
 aggregate(wt ~ weeks + treat, data=ratdrink, mean)
+
+# interaction plot
+with(ratdrink, 
+     interaction.plot(x.factor = weeks, 
+                      trace.factor = treat, 
+                      response = wt))
 
 # exploratory plots
 # scatterplot
@@ -41,41 +45,36 @@ ggplot(ratdrink, aes(x=weeks, y=wt)) + geom_point()
 ggplot(ratdrink, aes(x=weeks, y=wt, color=treat, group=subject)) + 
   geom_point() + geom_line()
 
-# with faceting
-ggplot(ratdrink, aes(x=weeks, y=wt, group=subject)) + 
-  geom_point() + geom_line() + facet_wrap(~ treat)
 # boxplots by week
 ggplot(ratdrink, aes(x=treat,y=wt)) + geom_boxplot() + facet_wrap(~weeks)
 
 
-# interaction plot
-with(ratdrink, 
-     interaction.plot(x.factor = weeks, 
-                      trace.factor = treat, 
-                      response = wt))
 
-# linear mixed-effect model #1
+# model #1
 # no interaction between treat and week
 # random intercept
 lmm1 <- lmer(wt ~ treat + weeks + (1 | subject), data=ratdrink)
 lmm1
-summary(lmm1) # notice: no p-values!
 summary(lmm1, corr=FALSE) # supress "Correlation of Fixed Effects"
 
 # What are Correlation of Fixed Effects?
 # see explanation from lme4 author:
 # https://stat.ethz.ch/pipermail/r-sig-mixed-models/2009q1/001941.html
 
+# Control is baseline. "treatthiouracil -13.9600" means rats on thiouracil are
+# about 14 grams lighter than rats on control.
+
 fixef(lmm1) 
 
-# Control is baseline. "treatthiouracil -13.9600" means rats on thiouracil are
-# about 13 grams lighter than rats on control.
+coef(lmm1) # fitted model per group
+# notice the intercepts vary (random intercept model)
 
 ranef(lmm1) # aka Best Linear Unbiased Predictions (BLUPs)
-coef(lmm1) # fitted model per group
 
-# Notice the (Intercept) column is the sum of the fixed intercept and random
-# intercept:
+# Notice the (Intercept) column in the coef(lmm1) output is the sum of the fixed
+# intercept and random intercept:
+
+coef(lmm1)$subject[1,] # coefficients for subject 1
 fixef(lmm1)[1] # fixed effect estimate of Intercept
 ranef(lmm1)$subject[1,] # predicted random effect for subject 1 Intercept
 
@@ -86,14 +85,18 @@ coef(lmm1)$subject[1,] # coefficients for subject 1
 # estimates of variance parameters
 VarCorr(lmm1)
 
-
+# model #2
 # fit random intercept and random slope for weeks;
 lmm2 <- lmer(wt ~ treat + weeks + (weeks | subject), data=ratdrink)
 summary(lmm2, corr=F)
+
+# Corr estimated to be -0.326. Suggests the slope and intercept random effects
+# may not be independent. Perhaps a higher intercept means a lower trajectory?
+
 fixef(lmm2)
 ranef(lmm2)
 coef(lmm2) # fitted model per group
-
+# Notice both the intercept and weeks coefficients vary
 
 # Again notice the intercepts and slopes are the sum of the random effects and
 # the fixed Intercept and slope estimates:
@@ -107,9 +110,7 @@ coef(lmm2)$subject[1,] # coefficients for subject 1
 # estimates of variance parameters
 VarCorr(lmm2)
 
-# Corr estimated to be -0.326. Suggests the slope and intercept random effects
-# may not be independent. Perhaps a higher intercept means a lower trajectory?
-
+# model #3
 # fit model with uncorrelated random intercept and slope:
 lmm3 <- lmer(wt ~ treat + weeks + (weeks || subject), data=ratdrink)
 summary(lmm3, corr=F)
@@ -117,7 +118,7 @@ summary(lmm3, corr=F)
 # estimates of variance parameters
 VarCorr(lmm3)
 
-
+# model #4
 # fit model with interaction;
 # implies different treatments lead to different slopes
 # include random slopes and intercept
@@ -125,11 +126,6 @@ lmm4 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject),
              data=ratdrink)
 # or lmm4 <- lmer(wt ~ treat * weeks + (weeks | subject), data=ratdrink)
 summary(lmm4, corr=F)
-fixef(lmm4)
-ranef(lmm4)
-coef(lmm4)
-
-VarCorr(lmm4)
 
 # Interpreting interaction:
 # The intercept and weeks coefficients are the fitted line for the control group.
@@ -140,6 +136,7 @@ VarCorr(lmm4)
 # treatthiouracil:weeks = -9.37 means the trajectory for thiouracil is lower
 # than the control group.
 
+# model #5
 # fit model with interaction and uncorrelated random slopes and intercept
 lmm5 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks || subject), 
              data=ratdrink)
@@ -158,23 +155,19 @@ confint(lmm1)
 # oldNames = FALSE changes the labeling
 confint(lmm1, oldNames = FALSE)
 
-# specify weeks parameters
+# can specify specific parameters
 confint(lmm1, parm = "weeks")
-# only fixed effects
+# only fixed effects: use "beta_"
 confint(lmm1, parm = "beta_")
-# only variance parameters
+# only variance parameters: "theta_"
 confint(lmm1, parm = "theta_", oldNames = FALSE)
 
-# bootstrap method with a progress bar (nsim = 500)
+# bootstrap method 
 confint(lmm1, method = "boot")
 
-# bootstrap method with a progress bar
+# bootstrap method with a progress bar and fewer simulations:
 confint(lmm1, method = "boot", nsim = 200,
         .progress="txt",oldNames = FALSE)
-# add a percent completion indicator
-confint(lmm1, method = "boot", nsim = 200,
-        .progress="txt", PBargs=list(style=3),
-        oldNames = FALSE)
 
 # generate approximate p-values
 # install.packages("lmerTest")
@@ -188,12 +181,16 @@ summary(lmm1a)
 detach("package:lmerTest", unload=TRUE)
 rm(lmm1a)
 
+# Back to presentation.
 
 # Diagnostics -------------------------------------------------------------
 
 # Two basic assumptions need to be checked:
 # 1. within-group errors are normal, centered at 0, have constant variance
 # 2. random effects are normal, centered at 0, have constant variance
+
+# Let's look at model #5
+formula(lmm5) # with interaction, uncorrelated random effects
 
 # check constant variance assumption
 # residual vs. fitted values
@@ -205,10 +202,11 @@ plot(lmm5, form = resid(.) ~ weeks)
 plot(lmm5, form = resid(.) ~ weeks | treat)
 # not doing very well with thyroxine in weeks 0 and 1
 
-# residuals by subjects
+# residuals by subjects (boxplots)
 plot(lmm5, subject ~ resid(.)) # oops...need to declare subject a factor
 plot(lmm5, factor(subject) ~ resid(.))
-# hopefully we're not systematically under- or over-predicting for subjects
+# hopefully we're not systematically under- or over-predicting for subjects;
+# this type of plot not feasible with huge number of subjects
 
 # check normality of residuals
 qqnorm(resid(lmm5))
@@ -230,8 +228,9 @@ lattice::dotplot(ranef(lmm5))
 
 # check model fit
 plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
+# again this plot not feasible with large numbers of subjects
 
-
+# Back to presentation
 
 # Model Predictions -------------------------------------------------------
 
@@ -240,25 +239,25 @@ plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
 predict(lmm5)
 
 # compare to original values for subjects 1 & 2
-cbind(ratdrink$wt[1:10], predict(lmm5)[1:10])
+cbind(observed = ratdrink$wt[1:10], predicted = predict(lmm5)[1:10])
 
 # predicted values, NOT including random effects;
 # also known as marginal predictions or population fitted values
 predict(lmm5, re.form=NA)
 
 # compare to original values for subjects 1 & 2
-cbind(ratdrink$wt[1:10], predict(lmm5, re.form=NA)[1:10])
+cbind(observed = ratdrink$wt[1:10], predicted = predict(lmm5, re.form=NA)[1:10])
 # NOTE: same for both subjects (both have same treatment: control)
 
 # make predictions for new data
 # new data needs to be in a data frame with same names as original data
 
-# predict weight at 2.5 weeks for all treatments:
+# predict marginal weight at 2.5 weeks for all treatments:
 nd <- data.frame(treat=levels(ratdrink$treat), weeks=2.5)
 nd
 predict(lmm5, newdata=nd, re.form=NA)
 
-# predict weight at weeks 3, 4, and 5 for thiouracil
+# predict marginal weight at weeks 3, 4, and 5 for thiouracil
 nd <- data.frame(treat="thiouracil", weeks=c(3,4,5))
 nd
 predict(lmm5, newdata=nd, re.form=NA)
@@ -297,6 +296,7 @@ anova(lmm4, lmm5)
 # suppress since fixed effects are the same in each model:
 anova(lmm4, lmm5, refit = FALSE)
 
+# The p-value is conservatice.
 # Let's compute a corrected p-value. 
 # Save the output so we can access Chi-square test statistic
 str(anova(lmm4, lmm5, refit = FALSE))
