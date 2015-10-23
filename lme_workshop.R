@@ -324,7 +324,7 @@ pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
 
 # time permitting example 2 (with nested random effects) ------------------
 
-# multilevel model
+# sometimes called a multilevel model
 
 URL <- "http://people.virginia.edu/~jcf2d/workshops/LMEinR/jspr.csv"
 jspr <- read.csv(URL)
@@ -350,7 +350,7 @@ str(jspr)
 # want to model English score as a function of gender, social class and Raven's
 # test score. Data is grouped by school, and class within school
 
-# set school, class and social as factors:
+# set school, class and social as factors (ie, categorical variables):
 jspr$school <- factor(jspr$school)
 jspr$class <- factor(jspr$class)
 jspr$social <- factor(jspr$social)
@@ -390,10 +390,10 @@ ggplot(jspr, aes(x=school,y=english)) + geom_point(alpha=1/3) +
 
 # visualize variability of mean english score between classes within schools
 ggplot(jspr, aes(x=class,y=english)) + geom_point(alpha=1/3) + 
-  stat_summary(fun.y="mean", geom="point", color="red", size=4) +
+  stat_summary(fun.y="mean", geom="point", color="red", size=3) +
   facet_wrap(~ school)
 
-
+# scatterplots
 ggplot(jspr, aes(x=raven, y=english)) + geom_point()
 ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter())
 ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
@@ -406,35 +406,66 @@ ggplot(jspr, aes(x=raven, y=english)) + geom_point(position=position_jitter()) +
   labs(title="English score vs Raven assessment by Social Class")
 
 
-# with grouping
+# scatterplots with grouping by school
 ggplot(jspr, aes(x=raven, y=english)) + geom_point() + facet_wrap(~school)
+# scatterplots with grouping by school
 ggplot(jspr, aes(x=raven, y=english, color=gender)) + geom_point() + geom_smooth(method="lm", se=F) +
   facet_wrap(~school)
+# scatterplots with grouping by social
 ggplot(jspr, aes(x=raven, y=english, color=gender)) + geom_point() + geom_smooth(method="lm", se=F) +
   facet_wrap(~social)
 
 # random slope for raven?
 # gender and raven interact?
 # social and raven interact?
+# treat social as categorical or a scale?
 
 # fit models
 
 # random intercept with raven + gender + social
 lmeEng1 <- lmer(english ~ raven + gender + social + (1 | school/class), data=jspr)
 summary(lmeEng1, corr=FALSE)
-VarCorr(lmeEng1)
-fixef(lmeEng1)
-ranef(lmeEng1)
-
 # models for schools, and classes within schools
 coef(lmeEng1)
 
-# add interaction for gender and raven
-lmeEng2 <- lmer(english ~ raven*gender + social + (1 | school/class), data=jspr)
-summary(lmeEng2, corr=FALSE)
-VarCorr(lmeEng2)
+# Interpretation of fixed effect coefficients: 
 
-# compare models
+# raven: every 1 point increase in Raven test score leads to about a 1.6
+# increase in english score.
+
+# gendergirl: girls score about 6 points higher on english test.
+
+# social2-9: difference from social1 ("highest" social class)
+
+# Intercept: average English score for boys in social class 1 and a Raven test
+# score of 0. (nonsense!)
+
+# To make intercept interpretable, let's center the Raven score and use it in
+# the model instead of raven:
+jspr$craven <- jspr$raven - mean(jspr$raven)
+
+# new lmeEng1
+lmeEng1 <- lmer(english ~ craven + gender + social + (1 | school/class), data=jspr)
+summary(lmeEng1, corr=FALSE)
+
+# Now Intercept is the average English score for boys in social class 1 with the
+# mean Raven score, which is about 25.
+
+# add interaction for gender and raven
+lmeEng2 <- lmer(english ~ craven*gender + social + (1 | school/class), data=jspr)
+summary(lmeEng2, corr=FALSE)
+
+# The interaction doesn't look significant. Assuming it is, the interpretation
+# of the craven and gender fixed effect parameters is as follows:
+
+# craven: every 1 point increase in Raven test score leads to about a 1.5
+# increase in english score FOR BOYS.
+
+# craven:gendergirl: every 1 point increase in Raven test score leads to about a
+# 1.5 + 0.2 = 1.7 increase in english score FOR GIRLS.
+
+
+# compare models to see if we should keep interaction:
 anova(lmeEng1, lmeEng2)
 # appears interaction is not warranted
 
@@ -452,27 +483,63 @@ summary(lmeEng4, corr=FALSE)
 VarCorr(lmeEng4)
 # perfect correlation?
 
+# let's look at data again
+# raven vs english, by school, color coded by class, with trend lines
+ggplot(jspr, aes(x=raven, y=english, color=class)) + geom_point() + 
+  geom_smooth(method="lm", se=F) +
+  facet_wrap(~school)
+# trying to account for raven slope variabilty between classes within schools
+# when many schools only have one class is problematic.
+
+# probably better to just accont for raven variation between schools:
+ggplot(jspr, aes(x=raven, y=english)) + geom_point() + 
+  geom_smooth(method="lm", se=F) +
+  facet_wrap(~school)
+
 # try fitting random slope for raven just at school level
-lmeEng5 <- lmer(english ~ raven + gender + social + (raven | school) + (1 | school:class), 
+lmeEng5 <- lmer(english ~ raven + gender + social + 
+                  (raven | school) + (1 | school:class), 
                 data=jspr)
 summary(lmeEng5, corr=FALSE)
 VarCorr(lmeEng5)
 
-
+# Compare models 4 and 5
 anova(lmeEng4, lmeEng5, refit=FALSE)
+
+# Recall the p-value is conservative
+
 # with correction
 aout <- na.omit(anova(lmeEng4, lmeEng5, refit=FALSE))
 pvalMix(aout$Chisq, df=aout$`Chi Df`)
+# model 4 appears preferable to model 5
 
-# do we even need a random intercept for raven?
+# do we even need a random slope for raven?
+# compare model 4 to model 1
+anova(lmeEng1,lmeEng4, refit=FALSE)
+# Notice AIC is identical
+# perform correction
 aout <- na.omit(anova(lmeEng1,lmeEng4, refit=FALSE))
 pvalMix(aout$Chisq, df=aout$`Chi Df`)
-# probably OK to do without
+# probably OK to do without random slope for raven
 
+# perhaps try model with social as a scale instead of a categorical variable.
+jspr$socials <- unclass(jspr$social)
+
+lmeEng6 <- lmer(english ~ craven + gender + socials + (1 | school/class), data=jspr)
+summary(lmeEng6, corr=FALSE)
+# as social score increases, english scores tend to go down. Seems significant.
+
+# Is the new model better? Can't compare with hypothesis test.
+AIC(lmeEng1, lmeEng6)
+# Looks like we still prefer our first model if we go by AIC.
+# But perhaps you prefer model 6 for the easier interpretation...
 
 # check model fit
 plot(lmeEng1, english ~ fitted(.) | school, abline = c(0,1))
-# not great
+# not great. However it's worth noting that's probably not what we would use our
+# model for. Probably just want to understand the relationship (if any) between 
+# our predictors and response. It seems social class and Raven score are
+# positively related with higher English scores.
 
 # some diagnostics
 plot(lmeEng1)
@@ -480,9 +547,9 @@ plot(lmeEng1, form = school ~ resid(.))
 
 # normality check
 qqnorm(resid(lmeEng1)) # residuals
-plot(ranef(lmeEng1)) # random effects
+plot(ranef(lmeEng1)) # random effects: TWO plots
 
 # are there levels of a grouping factor with extremely large or small predicted
 # random effects?
-lattice::dotplot(ranef(lmeEng1))
+lattice::dotplot(ranef(lmeEng1)) # TWO plots
 

@@ -37,9 +37,9 @@ Today the goal is to get your started with basic linear mixed-effect modeling in
 
 We have a new medical treatment. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every week for two months to gauge efficacy. 
 
-- The Fixed Effect is Treatment. If we were to replicate this study, we would use this variable again.  
+- The Fixed Effect is Treatment. Other fixed effects may include age, gender, weight, etc. If we were to replicate this study, we would use these variables again.  
 
-- The Random Effect is Patient. *Notice the response data is grouped by patient*. If we were to replicate this study, we would not use the same patients again.   
+- The Random Effect(s) *are associated* with Patients. Each patient may randomly affect one or more of the fixed effects. If we were to replicate this study, we would not use the same patients again. 
 
 ## Another candidate for linear mixed-effect modeling
 
@@ -47,16 +47,16 @@ We have a new computer-based math curriculum. We carry out an experiment where w
 
 - The Fixed Effect is Curriculum. If we were to replicate this study, we would use this variable again. Other fixed effects might also include gender and race.  
 
-- The Random Effects are Teachers and Schools. *Notice the response data is grouped by schools and teachers within schools*. If we were to replicate this study, we would not necessarily use the same teachers and schools again.
+- The Random Effect(s) *are associated* with Teachers and Schools. Each school and teacher may randomly affect one or more of the fixed effects. If we were to replicate this study, we would not necessarily use the same teachers and schools again. 
 
 
 ## Data for Linear Mixed-Effect Models
 
-LME (**L**inear **M**ixed-**E**ffect) models are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by _random levels, out of a huge population of possible levels,_ and the dependent variable is continuous. 
+LME (**L**inear **M**ixed-**E**ffect) models are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by _random levels_ and the dependent variable is continuous. 
 
-In our first example, we had longitudinal data grouped by patient, with multiple observations on the same patient. The effect of the patient is a random effect. The effect of the treatment is a fixed effect.
+In our first example, we had longitudinal data grouped by patient, with multiple observations on the same patient. The effect of the patient is random. The effect of the treatment is a fixed effect.
 
-In our second example, we had clustered data grouped by schools and teachers within schools. The effect of the schools and teachers within schools are random effects. The effect of the curriculum is a fixed effect.
+In our second example, we had clustered data grouped by schools and teachers within schools. The effect of the schools and teachers within schools are random. The effect of the curriculum is a fixed effect.
 
 ## Specification of a Linear Model
 
@@ -167,7 +167,7 @@ $$\begin{pmatrix}
 0 & 0 & \cdots & \sigma^{2}
 \end{pmatrix}$$
 
-This says that residuals associated with observations on the same subject have equal variance and are uncorrelated. We only have one parameter to estimate. This is the same as the standard linear model. *This is the default in R.*
+This says that residuals associated with observations on the same subject have equal variance and are uncorrelated. We only have one parameter to estimate. This is the same as the standard linear model. *This is the default in R and all that we'll cover today.*
 
 ## Another example of a $\boldsymbol{R_i}$ matrix structure
 
