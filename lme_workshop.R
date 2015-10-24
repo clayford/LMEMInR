@@ -39,20 +39,23 @@ with(ratdrink,
                       response = wt))
 
 # exploratory plots
-# scatterplot
+# scatterplot without grouping
 ggplot(ratdrink, aes(x=weeks, y=wt)) + geom_point()
 # wt versus weeks with dots colored by treat and with grouping
 ggplot(ratdrink, aes(x=weeks, y=wt, color=treat, group=subject)) + 
   geom_point() + geom_line()
 
+# looks like a linear model would work.
+# slope seems to differ between subjects?
+# Intercept?
+
 # boxplots by week
 ggplot(ratdrink, aes(x=treat,y=wt)) + geom_boxplot() + facet_wrap(~weeks)
 
 
-
 # model #1
-# no interaction between treat and week
 # random intercept
+# no interaction between treat and week
 lmm1 <- lmer(wt ~ treat + weeks + (1 | subject), data=ratdrink)
 lmm1
 summary(lmm1, corr=FALSE) # supress "Correlation of Fixed Effects"
@@ -84,6 +87,13 @@ coef(lmm1)$subject[1,] # coefficients for subject 1
 
 # estimates of variance parameters
 VarCorr(lmm1)
+
+#####################################
+# What happens if we ignore grouping?
+lm1 <- lm(wt ~ treat + weeks, data=ratdrink)
+summary(lm1) # smaller standard errors; too optimistic
+rm(lm1)
+#####################################
 
 # model #2
 # fit random intercept and random slope for weeks;
@@ -167,7 +177,7 @@ confint(lmm1, method = "boot")
 
 # bootstrap method with a progress bar and fewer simulations:
 confint(lmm1, method = "boot", nsim = 200,
-        .progress="txt",oldNames = FALSE)
+        .progress="txt", oldNames = FALSE)
 
 # generate approximate p-values
 # install.packages("lmerTest")

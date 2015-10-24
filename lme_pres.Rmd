@@ -249,7 +249,7 @@ If we were to imagine what kind of mathematical process gave rise to this data, 
 ## Fit a LME model for a random slope
 
 ```{r, message=FALSE}
-lme2 <- lmer(y ~ x + (0 + x | g), data = dat)
+lme2 <- lmer(y ~ x + (-1 + x | g), data = dat)
 fixef(lme2) # fixed effect estimates
 VarCorr(lme2) # D and R estimates
 ```
@@ -349,7 +349,7 @@ Assuming one predictor and one level of grouping, say repeated measures on subje
 `lme01 <- lmer(dv ~ x1 + (1 | g), data=df)`
 
 **Random slope**:  
-`lme02 <- lmer(dv ~ x1 + (0 + x1 | g), data=df)`
+`lme02 <- lmer(dv ~ x1 + (-1 + x1 | g), data=df)`
 
 **Correlated random slope and intercept**:  
 `lme03 <- lmer(dv ~ x1 + (x1 | g), data=df)`
@@ -368,7 +368,7 @@ Assuming one predictor and two levels of grouping, say teachers within schools:
 **Or:** `lme01 <- lmer(dv ~ x1 + (1 | sch) + (1 | sch:tch), data=df)`    
 
 **Random slope**:  
-`lme02 <- lmer(dv ~ x1 + (0 + x1 | sch/tch), data=df)`
+`lme02 <- lmer(dv ~ x1 + (-1 + x1 | sch/tch), data=df)`
 
 **Correlated random slope and intercept**:  
 `lme03 <- lmer(dv ~ x1 + (x1 | sch/tch), data=df)`
