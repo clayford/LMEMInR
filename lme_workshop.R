@@ -553,3 +553,9 @@ plot(ranef(lmeEng1)) # random effects: TWO plots
 # random effects?
 lattice::dotplot(ranef(lmeEng1)) # TWO plots
 
+# look at school 29 and school 31
+subset(jspr, school==29)
+subset(jspr, school==31)
+aggregate(english ~ school, data=jspr, mean, subset = school %in% c(29,31))
+mean(jspr$english)
+

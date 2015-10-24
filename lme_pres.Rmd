@@ -5,58 +5,41 @@ date: "Fall 2015"
 output: beamer_presentation
 ---
 
+## Linear Mixed-Effect Models
 
-## What is a Linear Mixed-Effect Model?
+LME (**L**inear **M**ixed-**E**ffect) models are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by _random levels_ and the dependent variable is continuous. 
 
-A linear statistical model with both *fixed* and *random* effects. Non-formal definitions of fixed and random effects:
+"Grouped by random levels" means there are several observations that belong to a single subject or object that can be thought of as a random sample from a population.
 
-**Fixed effects** are the things you usually put in a regression model, such as gender, age, treatment, race, temperature, grade level, income, SAT score, etc, etc. We want to understand how they affect our dependent variable. _They produce regression coefficients._
-
-**Random effects** are things that affect fixed effects. Examples include individuals, teachers, schools, rats, patients, plots of land, etc. We want to understand how their variation affects our fixed effects. _They produce estimates of variance, not regression coefficients._
-
-## More formal definitions
-
-Fixed effects are parameters associated with an entire population or with certain repeatable levels of experimental factors.
-
-Random effects are associated with individual experimental units drawn at random from a population. 
-
-> Pinheiro and Bates (2000)
-
-## I don't like your definitions
-
-Google "fixed vs random effects". You'll find many different explanations. There is no consensus on how to define them.
-
-On top of that linear mixed-effect models are also called "hierarchical linear models", "multilevel models", or "longitudinal models", with different terms and notation!
-
-Mix in advanced statistics and a trying to learn a statistical software package, and you have something that can take some getting used to.
-
-Today the goal is to get your started with basic linear mixed-effect modeling in the context of `R`.
-
+These groups are sometimes referred to as "random effects".
 
 ## Candidate for linear mixed-effect modeling
 
 We have a new medical treatment. We carry out an experiment where we randomly prescribe the treatment or placebo to patients and collect response data every week for two months to gauge efficacy. 
 
-- The Fixed Effect is Treatment. Other fixed effects may include age, gender, weight, etc. If we were to replicate this study, we would use these variables again.  
+- Treatment is the _fixed effect_. Other fixed effects may include age, gender, weight, time, etc. If we were to replicate this study, we would use these variables again.  
 
-- The Random Effect(s) *are associated* with Patients. Each patient may randomly affect one or more of the fixed effects. If we were to replicate this study, we would not use the same patients again. 
+- The data is grouped by patients, a sample from a population. We will likely have _random effects_ associated with patients. If we were to replicate this study, we would not use the same patients again. 
 
 ## Another candidate for linear mixed-effect modeling
 
 We have a new computer-based math curriculum. We carry out an experiment where we randomly prescribe either the new curriculum or current curriculum to teachers in various schools and measure change in student pre- and post-test scores. 
 
-- The Fixed Effect is Curriculum. If we were to replicate this study, we would use this variable again. Other fixed effects might also include gender and race.  
+- Curriculum is the _fixed effect_. Other fixed effects might include gender, race, etc. If we were to replicate this study, we would use these variables again.   
 
-- The Random Effect(s) *are associated* with Teachers and Schools. Each school and teacher may randomly affect one or more of the fixed effects. If we were to replicate this study, we would not necessarily use the same teachers and schools again. 
+- The data is grouped by school, and teacher within school. We will likely have _random effects_ associated with schools and teachers. If we were to replicate this study, we would not necessarily use the same teachers and schools again. 
 
+## Example of fixed effect vs random effect
 
-## Data for Linear Mixed-Effect Models
+In our medical treatment example, let's say we add `age` to our model.
 
-LME (**L**inear **M**ixed-**E**ffect) models are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by _random levels_ and the dependent variable is continuous. 
+We get a coefficient for `age` that summarizes the relationship between `age` and the response. 
 
-In our first example, we had longitudinal data grouped by patient, with multiple observations on the same patient. The effect of the patient is random. The effect of the treatment is a fixed effect.
+If we think the relationship between `age` and the response _varies between patients_, we "add a random effect for `age`". This produces an estimate of variability of how the `age` coefficient differs between patients.
 
-In our second example, we had clustered data grouped by schools and teachers within schools. The effect of the schools and teachers within schools are random. The effect of the curriculum is a fixed effect.
+**Fixed effects have coefficients.**    
+**Random effects have estimates of variation.**
+
 
 ## Specification of a Linear Model
 
