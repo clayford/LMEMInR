@@ -5,7 +5,9 @@ date: "Fall 2015"
 output: beamer_presentation
 ---
 
-## Linear Mixed-Effect Models
+## What are Linear Mixed-Effect Models?
+
+Linear models with fixed and random effects.
 
 LME (**L**inear **M**ixed-**E**ffect) models are suitable for clustered, longitudinal or repeated-measures data in which the data are grouped by _random levels_ and the dependent variable is continuous. 
 
@@ -151,22 +153,6 @@ $$\begin{pmatrix}
 \end{pmatrix}$$
 
 This says that residuals associated with observations on the same subject have equal variance and are uncorrelated. We only have one parameter to estimate. This is the same as the standard linear model. *This is the default in R and all that we'll cover today.*
-
-## Another example of a $\boldsymbol{R_i}$ matrix structure
-
-The following is called a *compound symmetry* structure.
-
-$$\begin{pmatrix}
-\sigma^{2} + \sigma_{1}  & \sigma_{1} & \cdots  & \sigma_{1}\\ 
-\sigma_{1} & \sigma^{2} + \sigma_{1} & \cdots & \sigma_{1}\\ 
-\vdots  & \vdots & \ddots  &\vdots \\ 
-\sigma_{1} & \sigma_{1} & \cdots & \sigma^{2} + \sigma_{1}
-\end{pmatrix}$$
-
-This says that residuals associated with observations on the same subject have equal variance and equal covariance. This is used when an assumption of equal correlation of residuals is plausible. Here we have two parameters to estimate: $\sigma^{2}$ and $\sigma_{1}$
-
-There are other covariance structures for $\boldsymbol{R_i}$, but we won't cover those today.
-
 
 ## Simple data for a linear mixed-effect model
 ```{r, cache=TRUE, echo=FALSE}
@@ -383,11 +369,12 @@ Again we can have multiple predictors and random effects.
 
 Once we fit a model, `lme4` has several functions for extracting and viewing model information:
 
-- `summary()` - View summary of fitted LME 
-- `fixef()` - View estimated fixed effect coefficients 
-- `ranef()` - View predicted random effects
-- `coef()` - View coefficients for LME for *each group* 
-- `VarCorr()` - View estimated variance parameters
+- `summary()` - summary of fitted LME 
+- `fixef()` - estimated fixed effect coefficients, $\beta$ 
+- `ranef()` - predicted random effects, $\boldsymbol{b_i}$
+- `coef()` - coefficients for *each group*, $\beta$ and $\beta + \boldsymbol{b_i}$
+- `VarCorr()` - estimated variance parameters, $\boldsymbol{D}$ and $\boldsymbol{R_i}$
+- `resid()` - residuals, or estimated random errors, $\epsilon_i$
 
 Let's go to R!
 
