@@ -32,7 +32,7 @@ summary(ratdrink)# unbalanced data
 # summary stats
 aggregate(wt ~ weeks + treat, data=ratdrink, mean)
 
-# interaction plot
+# easier to see with interaction plot
 with(ratdrink, 
      interaction.plot(x.factor = weeks, 
                       trace.factor = treat, 
@@ -61,13 +61,16 @@ lmm1
 summary(lmm1, corr=FALSE) # supress "Correlation of Fixed Effects"
 
 # What are Correlation of Fixed Effects?
-# see explanation from lme4 author:
+# see explanation from lme4 author (Doug Bates):
 # https://stat.ethz.ch/pipermail/r-sig-mixed-models/2009q1/001941.html
+
+fixef(lmm1) 
+
+# Some interpretation:
+# (Intercept) = 59.4770 means expected weight for control group at 0 weeks.
 
 # Control is baseline. "treatthiouracil -13.9600" means rats on thiouracil are
 # about 14 grams lighter than rats on control.
-
-fixef(lmm1) 
 
 coef(lmm1) # fitted model per group
 # notice the intercepts vary (random intercept model)
@@ -78,7 +81,7 @@ ranef(lmm1) # aka Best Linear Unbiased Predictions (BLUPs)
 # intercept and random intercept:
 
 coef(lmm1)$subject[1,] # coefficients for subject 1
-fixef(lmm1)[1] # fixed effect estimate of Intercept
+fixef(lmm1) # fixed effect estimate of Intercept
 ranef(lmm1)$subject[1,] # predicted random effect for subject 1 Intercept
 
 # add them to get the intercept column in coef(lmm1)
@@ -88,29 +91,33 @@ coef(lmm1)$subject[1,] # coefficients for subject 1
 # estimates of variance parameters
 VarCorr(lmm1)
 
-#####################################
-# What happens if we ignore grouping?
-lm1 <- lm(wt ~ treat + weeks, data=ratdrink)
-summary(lm1) # smaller standard errors; too optimistic
-rm(lm1)
-#####################################
 
 # model #2
 # fit random intercept and random slope for weeks;
 lmm2 <- lmer(wt ~ treat + weeks + (weeks | subject), data=ratdrink)
 summary(lmm2, corr=F)
 
-# Corr estimated to be -0.326. Suggests the slope and intercept random effects
-# may not be independent. Perhaps a higher intercept means a lower trajectory?
+# Corr estimated to be -0.33. Suggests the slope and intercept random effects
+# may not be independent. 
 
 fixef(lmm2)
-ranef(lmm2)
+
+# Some interpretation:
+# (Intercept) = 54.2434 means expected weight for control group at 0 weeks.
+
+# Control is baseline. "treatthiouracil 0.9" means rats on thiouracil are
+# about 0.9 grams lighter than rats on control. (?) That's weird given plots.
+# Probably need to include interaction...
+
+ranef(lmm2) # two random effects
+
+
 coef(lmm2) # fitted model per group
 # Notice both the intercept and weeks coefficients vary
 
 # Again notice the intercepts and slopes are the sum of the random effects and
 # the fixed Intercept and slope estimates:
-fixef(lmm2)[c(1,4)] # fixed effect estimates
+fixef(lmm2) # fixed effect estimates
 ranef(lmm2)$subject[1,] # predicted random effects for subject 1
 
 # add them to get the intercept and slope columns in coef(lmm2)
@@ -119,6 +126,7 @@ coef(lmm2)$subject[1,] # coefficients for subject 1
 
 # estimates of variance parameters
 VarCorr(lmm2)
+
 
 # model #3
 # fit model with uncorrelated random intercept and slope:
@@ -138,10 +146,13 @@ lmm4 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks | subject),
 summary(lmm4, corr=F)
 
 # Interpreting interaction:
-# The intercept and weeks coefficients are the fitted line for the control group.
+# The intercept (52.88) and weeks (26.48) coefficients are the fitted line for
+# the control group.
 
 # Intercept + treatthiouracil is the intercept for the thiouracil group.
+# 52.88 + 4.78 = 57.66.
 # weeks + treatthiouracil:weeks is the slope for the thiouracil group.
+# 26.48 - 9.37 = 17.11
 
 # treatthiouracil:weeks = -9.37 means the trajectory for thiouracil is lower
 # than the control group.
@@ -151,6 +162,8 @@ summary(lmm4, corr=F)
 lmm5 <- lmer(wt ~ treat + weeks + treat:weeks + (weeks || subject), 
              data=ratdrink)
 summary(lmm5, corr=FALSE)
+
+
 
 # back to presentation
 
@@ -225,7 +238,6 @@ qqnorm(resid(lmm5))
 plot(ranef(lmm5))
 
 # check normality of random effects
-# library(lattice)
 lattice::qqmath(ranef(lmm5))
 # These hopefully follow a positive 45 degree line
 
@@ -236,7 +248,7 @@ lattice::qqmath(ranef(lmm5))
 # predicted random effects.
 lattice::dotplot(ranef(lmm5))
 
-# check model fit
+# visual check of model fit
 plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
 # again this plot not feasible with large numbers of subjects
 
@@ -249,14 +261,18 @@ plot(lmm5, wt ~ fitted(.) | subject, abline = c(0,1))
 predict(lmm5)
 
 # compare to original values for subjects 1 & 2
-cbind(observed = ratdrink$wt[1:10], predicted = predict(lmm5)[1:10])
+cbind(subject=ratdrink$subject[1:10],
+      observed = ratdrink$wt[1:10], 
+      predicted = predict(lmm5)[1:10])
 
 # predicted values, NOT including random effects;
 # also known as marginal predictions or population fitted values
 predict(lmm5, re.form=NA)
 
 # compare to original values for subjects 1 & 2
-cbind(observed = ratdrink$wt[1:10], predicted = predict(lmm5, re.form=NA)[1:10])
+cbind(subject=ratdrink$subject[1:10],
+      observed = ratdrink$wt[1:10],
+      predicted = predict(lmm5, re.form=NA)[1:10])
 # NOTE: same for both subjects (both have same treatment: control)
 
 # make predictions for new data
@@ -276,9 +292,37 @@ predict(lmm5, newdata=nd, re.form=NA)
 
 # Model Comparison --------------------------------------------------------
 
+# Example 1:
+# let's compare lmm1 with lmm2:
+formula(lmm1)
+formula(lmm2)
+# do we need random effect for slope?
+
+anova(lmm1, lmm2)
+# model refit, but not necessary since fixed effects are same
+anova(lmm1, lmm2, refit=FALSE)
+# Appears we should keep the random effect for slope.
+
+# Recall p-value is approximate and conservative, but it's tiny here and 
+# probably not worth worrying about. However, here's how we can compute a
+# corrected p-value.
+
+# Save the output so we can access Chi-square test statistic
+str(anova(lmm1, lmm2, refit = FALSE))
+aout <- na.omit(anova(lmm1, lmm2, refit = FALSE)) # drop NAs
+str(aout)
+aout$Chisq
+
+# In the test we see that it's on 2 degree of freedom, but recall the null
+# distribution is not on 2 degree of freedom but rather a mixture of
+# distributions.
+0.5*pchisq(aout$Chisq, 2, lower.tail = FALSE) + 0.5*pchisq(aout$Chisq, 1, lower.tail = FALSE)
+
+# Example 2:
 # let's compare lmm2 with lmm4:
 formula(lmm2) # no interaction
 formula(lmm4) # with interaction
+# lmm2 nested within lmm4
 
 anova(lmm2, lmm4)
 # interaction appears significant
@@ -289,6 +333,7 @@ extractAIC(lmm4)
 
 # AIC also works; the calculations are slightly different
 AIC(lmm2, lmm4)
+
 
 # let's compare lmm5 with lmm4:
 formula(lmm5) # with interaction; no correlation between random effects
@@ -301,36 +346,13 @@ VarCorr(lmm5) # without correlated random effects
 # is 0
 anova(lmm4, lmm5)
 # notice models are re-fit with ML
-# the p-value is approximate
 
 # suppress since fixed effects are the same in each model:
 anova(lmm4, lmm5, refit = FALSE)
-
-# The p-value is conservatice.
-# Let's compute a corrected p-value. 
-# Save the output so we can access Chi-square test statistic
-str(anova(lmm4, lmm5, refit = FALSE))
-aout <- na.omit(anova(lmm4, lmm5, refit = FALSE)) # drop NAs
-str(aout)
-aout$Chisq
-
-# In the test we see that it's on 1 degree of freedom, but recall the null
-# distribution is not on 1 degree of freedom but rather a mixture of
-# distributions.
-0.5*pchisq(aout$Chisq, 1, lower.tail = FALSE) + 0.5*pchisq(aout$Chisq, 0, lower.tail = FALSE)
-# or this:
-pchisq(aout$Chisq, 1, lower.tail = FALSE)/2
-
-# we can write a function to automate this:
-pvalMix <- function(stat,df){
-  0.5*pchisq(stat, df, lower.tail = FALSE) + 
-    0.5*pchisq(stat, df-1, lower.tail = FALSE)
-}
-pvalMix(stat=aout$Chisq, df=aout$`Chi Df`)
-
 # Result: fail to reject; appears safe to assume the random effects are independent
 
-
+# Don't need to do a corrected p-value in this case because 0 is not on the
+# boundary of the parameter space for covariance.
 
 # time permitting example 2 (with nested random effects) ------------------
 
@@ -480,7 +502,7 @@ anova(lmeEng1, lmeEng2)
 # appears interaction is not warranted
 
 # does social help explain variability in english score
-lmeEng3 <- lmer(english ~ raven + gender + (1 | school/class), data=jspr)
+lmeEng3 <- lmer(english ~ craven + gender + (1 | school/class), data=jspr)
 summary(lmeEng3, corr=FALSE)
 
 # compare models
@@ -488,7 +510,7 @@ anova(lmeEng1, lmeEng3)
 # it seems we should keep social
 
 # random slope for raven?
-lmeEng4 <- lmer(english ~ raven + gender + social + (raven | school/class), data=jspr)
+lmeEng4 <- lmer(english ~ craven + gender + social + (craven | school/class), data=jspr)
 summary(lmeEng4, corr=FALSE)
 VarCorr(lmeEng4)
 # perfect correlation?
@@ -507,29 +529,32 @@ ggplot(jspr, aes(x=raven, y=english)) + geom_point() +
   facet_wrap(~school)
 
 # try fitting random slope for raven just at school level
-lmeEng5 <- lmer(english ~ raven + gender + social + 
-                  (raven | school) + (1 | school:class), 
+lmeEng5 <- lmer(english ~ craven + gender + social + 
+                  (craven | school) + (1 | school:class), 
                 data=jspr)
 summary(lmeEng5, corr=FALSE)
 VarCorr(lmeEng5)
 
 # Compare models 4 and 5
 anova(lmeEng4, lmeEng5, refit=FALSE)
-
-# Recall the p-value is conservative
-
-# with correction
-aout <- na.omit(anova(lmeEng4, lmeEng5, refit=FALSE))
-pvalMix(aout$Chisq, df=aout$`Chi Df`)
 # model 4 appears preferable to model 5
+
 
 # do we even need a random slope for raven?
 # compare model 4 to model 1
 anova(lmeEng1,lmeEng4, refit=FALSE)
 # Notice AIC is identical
-# perform correction
+
+# recall the p-value is conservative
+
+# perform correction:
+# In the test we see that it's on 4 degrees of freedom, but recall the null
+# distribution is not on 4 degree of freedom but rather a mixture of
+# distributions with 4 and 3 DF.
 aout <- na.omit(anova(lmeEng1,lmeEng4, refit=FALSE))
-pvalMix(aout$Chisq, df=aout$`Chi Df`)
+aout$Chisq
+
+0.5*pchisq(aout$Chisq, 4, lower.tail = FALSE) + 0.5*pchisq(aout$Chisq, 3, lower.tail = FALSE)
 # probably OK to do without random slope for raven
 
 # perhaps try model with social as a scale instead of a categorical variable.

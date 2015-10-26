@@ -369,7 +369,7 @@ Again we can have multiple predictors and random effects.
 
 Once we fit a model, `lme4` has several functions for extracting and viewing model information:
 
-- `summary()` - summary of fitted LME 
+- `summary()` - summary of fitted LME  
 - `fixef()` - estimated fixed effect coefficients, $\beta$ 
 - `ranef()` - predicted random effects, $\boldsymbol{b_i}$
 - `coef()` - coefficients for *each group*, $\beta$ and $\beta + \boldsymbol{b_i}$
@@ -498,7 +498,7 @@ Let's go back to R!
 
 If you look closely at the summary output for a model fit with `lme4`, you'll see the message: `Linear mixed model fit by REML`.
 
-REML stands for Restricted Maximum-Likelihood Estimation. It provides unbiased estimates for the variance parameters. 
+REML stands for Restricted Maximum-Likelihood. It provides unbiased estimates for the variance parameters. 
 
 By setting `REML=FALSE` in the `lmer()` function, we can estimate parameters using ML, Maximum Likelihood. But the variance estimates will be biased downwards.
 
