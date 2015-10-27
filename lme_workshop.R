@@ -11,8 +11,6 @@ library(ggplot2)
 
 # Fitting Models using lmer() ---------------------------------------------
 
-# EXAMPLE 1
-
 URL <- "http://people.virginia.edu/~jcf2d/workshops/LMEinR/ratdrink.csv"
 ratdrink <- read.csv(URL)
 
@@ -33,10 +31,9 @@ summary(ratdrink)# unbalanced data
 aggregate(wt ~ weeks + treat, data=ratdrink, mean)
 
 # easier to see with interaction plot
-with(ratdrink, 
-     interaction.plot(x.factor = weeks, 
-                      trace.factor = treat, 
-                      response = wt))
+interaction.plot(x.factor = ratdrink$weeks,
+                 trace.factor = ratdrink$treat,
+                 response = ratdrink$wt)
 
 # exploratory plots
 # scatterplot without grouping
@@ -48,9 +45,6 @@ ggplot(ratdrink, aes(x=weeks, y=wt, color=treat, group=subject)) +
 # looks like a linear model would work.
 # slope seems to differ between subjects?
 # Intercept?
-
-# boxplots by week
-ggplot(ratdrink, aes(x=treat,y=wt)) + geom_boxplot() + facet_wrap(~weeks)
 
 
 # model #1
@@ -354,6 +348,8 @@ anova(lmm4, lmm5, refit = FALSE)
 # Don't need to do a corrected p-value in this case because 0 is not on the
 # boundary of the parameter space for covariance.
 
+
+
 # time permitting example 2 (with nested random effects) ------------------
 
 # sometimes called a multilevel model
@@ -594,3 +590,29 @@ subset(jspr, school==31)
 aggregate(english ~ school, data=jspr, mean, subset = school %in% c(29,31))
 mean(jspr$english)
 
+
+# Appendix ----------------------------------------------------------------
+
+# The getME() function allows us to extract model components.
+# We can use this function to reconstruct our response.
+# Recall the formula from the lecture (slide 10): 
+# Y_i = X_i*beta + Z_i*b_i + epsilon
+
+# Let's reconstruct "english" using model components of lmeEng1.
+X_i <- getME(lmeEng1, "X")
+beta <- getME(lmeEng1, "beta")
+Z_i <- getME(lmeEng1, "Z")
+b_i <- getME(lmeEng1, "b")
+epsilon <- resid(lmeEng1)
+
+# Use %*% for matrix multiplication
+Y_i <- X_i %*% beta + Z_i %*% b_i + epsilon
+all(Y_i == jspr$english) # TRUE
+
+# X_i %*% beta = marginal (or unconditional) predictions
+mp <- X_i %*% beta
+all(mp == predict(lmeEng1, re.form=NA)) # TRUE
+
+# X_i %*% beta + Z_i %*% b_i = conditional prediction
+cp <- X_i %*% beta + Z_i %*% b_i
+all(cp == predict(lmeEng1))
